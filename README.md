@@ -30,6 +30,10 @@ found      | dont need  | yes       | ok
 
 Log:
 ====
+sep 27
+- woohoo x2! pretty good code structure, got the passphrase flow working-ish
+- next big step: SHOW REAL DB SEARCH RESULTS!
+
 sep 25
 - woohoo! ulauncher extension that asks for a passphrase! it works!
 - making a GTK password entry window
@@ -42,6 +46,17 @@ TODO:
 - center the passphrase window
 - size the passphrase window more better
 - show notification when correct passphrase is entered
+- show notification when incorrect passphrase is entered
+- show "recently accessed entries" if no search params entered (instead of empty list)
+- show "enter more words" if result list exceeds "max items"
+- if cli not accessible, open page with keepassxc-cli documentation
+- move EntryWindow gtk code into separate file
+- when entry is activated, show following items:
+	- every key (except for password) - if selected, copy that to clipboard
+	- "copy password to clipboard", without showing it on screen
+- handle "preferences set" event or whaterver
+- implement lock timeout: erase passphrase after X seconds (set in preferences)
+- make real icons
 
 DONE:
 =====
