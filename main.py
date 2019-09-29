@@ -13,6 +13,7 @@ from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
 from ulauncher.api.shared.action.ActionList import ActionList
 from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
+from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
 from keepassxc_db import (
     KeepassxcDatabase,
     KeepassxcCliNotFoundError,
@@ -23,6 +24,7 @@ from keepassxc_db import (
 UNLOCK_ICON = "images/icon.svg"
 ERROR_ICON = "images/icon.svg"
 ITEM_ICON = "images/icon.svg"
+PASSWORD_ICON = "images/icon.svg"
 EMPTY_ICON = "images/icon.svg"
 
 KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
@@ -129,12 +131,24 @@ class KeepassxcExtension(Extension):
         self.keepassxc_db = KeepassxcDatabase()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener(self.keepassxc_db))
         self.subscribe(ItemEnterEvent, ItemEnterEventListener(self.keepassxc_db))
+        self.active_entry = None
 
     def get_db_path(self):
         return self.preferences["database-path"]
 
     def get_max_result_items(self):
         return self.preferences["max-results"]
+
+    def set_active_entry(self, keyword, entry):
+        self.active_entry = (keyword, entry)
+
+    def check_and_reset_active_entry(self, keyword, entry):
+        r = self.active_entry == (keyword, entry)
+        self.active_entry = None
+        return r
+
+    def reset_active_entry(self):
+        self.active_entry = None
 
 
 class KeywordQueryEventListener(EventListener):
@@ -160,23 +174,21 @@ class KeywordQueryEventListener(EventListener):
 
     def render_search_results(self, keyword, entries, extension):
         max_items = int(extension.get_max_result_items())
-        results = []
+        items = []
         if not entries:
-            results.append(NO_SEARCH_RESULTS_ITEM)
+            items.append(NO_SEARCH_RESULTS_ITEM)
         else:
             for e in entries[:max_items]:
-                action = ActionList(
-                    [
-                        SetUserQueryAction("{} {}".format(keyword, e)),
-                        ExtensionCustomAction({"action": "activate_entry", "entry": e}),
-                    ]
+                action = ExtensionCustomAction(
+                    {"action": "activate_entry", "entry": e, "keyword": keyword},
+                    keep_app_open=True,
                 )
-                results.append(
+                items.append(
                     ExtensionSmallResultItem(icon=ITEM_ICON, name=e, on_enter=action)
                 )
             if len(entries) > max_items:
-                results.append(more_results_available_item(len(entries) - max_items))
-        return RenderResultListAction(results)
+                items.append(more_results_available_item(len(entries) - max_items))
+        return RenderResultListAction(items)
 
     def process_keyword_query(self, event, extension):
         query_keyword = event.get_keyword()
@@ -184,8 +196,36 @@ class KeywordQueryEventListener(EventListener):
         if not query_args:
             return RenderResultListAction([ENTER_QUERY_ITEM])
         else:
-            entries = self.keepassxc_db.search(query_args)
-            return self.render_search_results(query_keyword, entries, extension)
+            if extension.check_and_reset_active_entry(query_keyword, query_args):
+                return self.show_active_entry(query_args)
+            else:
+                entries = self.keepassxc_db.search(query_args)
+                return self.render_search_results(query_keyword, entries, extension)
+
+    def show_active_entry(self, entry):
+        items = []
+        attrs = self.keepassxc_db.get_entry_details(entry)
+        for attr in ["Password", "UserName", "URL", "Notes"]:
+            val = attrs.get(attr, "")
+            if val:
+                if attr == "Password":
+                    items.append(
+                        ExtensionSmallResultItem(
+                            icon=PASSWORD_ICON,
+                            name="Copy password to the clipboard",
+                            on_enter=CopyToClipboardAction(val),
+                        )
+                    )
+                else:
+                    items.append(
+                        ExtensionResultItem(
+                            icon=ITEM_ICON,
+                            name="{}: {}".format(attr, val),
+                            description="Copy to the clipboard",
+                            on_enter=CopyToClipboardAction(val),
+                        )
+                    )
+        return RenderResultListAction(items)
 
 
 class ItemEnterEventListener(EventListener):
@@ -201,7 +241,10 @@ class ItemEnterEventListener(EventListener):
             if action == "need_passphrase":
                 return self.read_verify_passphrase(extension)
             elif action == "activate_entry":
-                return self.activate_entry(data.get("entry"))
+                keyword = data.get("keyword", None)
+                entry = data.get("entry", None)
+                extension.set_active_entry(keyword, entry)
+                return SetUserQueryAction("{} {}".format(keyword, entry))
         except KeepassxcCliNotFoundError:
             return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
         except KeepassxcFileNotFoundError:
@@ -219,10 +262,6 @@ class ItemEnterEventListener(EventListener):
             else:
                 # TODO notify of failure
                 pass
-
-    def activate_entry(self, entry):
-        # TODO display relevant items
-        pass
 
 
 if __name__ == "__main__":

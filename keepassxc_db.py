@@ -67,6 +67,16 @@ class KeepassxcDatabase:
         else:
             return out.splitlines()
 
+    def get_entry_details(self, entry):
+        attrs = dict()
+        for attr in ["UserName", "Password", "URL", "Notes"]:
+            (err, out) = self.run_cli("show", "-q", "-a", attr, self.path, entry)
+            if err:
+                raise KeepassxcCliError(err)
+            else:
+                attrs[attr] = out.strip("\n")
+        return attrs
+
     def can_execute_cli(self):
         try:
             subprocess.run([self.cli], stdout=subprocess.PIPE, stderr=subprocess.PIPE)

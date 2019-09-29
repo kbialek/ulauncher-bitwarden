@@ -41,23 +41,28 @@ sep 25
 
 TODO MVP:
 =========
-- when entry is activated, show following items:
-	- every key (except for password) - if selected, copy that to clipboard
-	- "copy password to clipboard", without showing it on screen
-- show notification when correct passphrase is entered
-- show notification when incorrect passphrase is entered
+- move EntryWindow gtk code into separate file
 - center the passphrase window
 - size the passphrase window more better
-- move EntryWindow gtk code into separate file
-- handle "preferences set" event or whaterver
-- implement lock timeout: erase passphrase after X seconds (set in preferences)
+- show notification when correct passphrase is entered
+- show notification when incorrect passphrase is entered
+- show notification when something is copied to clipboard
+- remove the "/" prefix in entry names
 - make real icons
 
 TODO MVP+:
 ==========
+- ?show passphrase window again with err message if wrong passphrase entered
+- if user activates entry but doesnt do anything then presses backspace, reset userQuery to previous search term
+- implement lock timeout: erase passphrase after X seconds (set in preferences)
+- fuzzy search!
+- handle "preferences set" event or whaterver
+- support key file
+- support yubikey
+- find a graceful way to display notes - would love some preview window from which i can copy text, good for CCs etc
 - show username(?) in description for search result items
-- "show more" pagination when too many results
-- show "recently accessed entries" if no search params entered (instead of empty list)
+- paginate results: "show more" pagination when too many results
+- show "recently activated entries" if no search params entered (instead of empty list)
 - if cli not accessible, open page with keepassxc-cli documentation
 
 DONE:
@@ -66,3 +71,6 @@ DONE:
 - search: feed passphrase into cli subprocess
 - use "locate anything-at-all" command to check if we can open db file, before asking for passphrase. do this on first run and cache result for later.
 - show "enter more words" if result list exceeds "max items"
+- when entry is activated, show following items:
+	- every key (except for password) - if selected, copy that to clipboard
+	- "copy password to clipboard", without showing it on screen
