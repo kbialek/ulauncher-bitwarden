@@ -23,6 +23,7 @@ from keepassxc_db import (
 UNLOCK_ICON = "images/icon.svg"
 ERROR_ICON = "images/icon.svg"
 ITEM_ICON = "images/icon.svg"
+EMPTY_ICON = "images/icon.svg"
 
 KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
     icon=ERROR_ICON,
@@ -33,7 +34,7 @@ KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
 
 KEEPASSXC_DB_NOT_FOUND_ITEM = ExtensionResultItem(
     icon=ERROR_ICON,
-    name="Cannot find or access the database file",
+    name="Cannot find the database file",
     description="Check the password database file path in extension preferences",
     on_enter=DoNothingAction(),
 )
@@ -55,15 +56,29 @@ WRONG_PASSPHRASE_ITEM = ExtensionResultItem(
 ENTER_QUERY_ITEM = ExtensionResultItem(
     icon=ITEM_ICON,
     name="Enter search terms...",
-    description="Please start typing the query to see results",
-    on_enter=DoNothingAction()
+    description="Please start typing to see results",
+    on_enter=DoNothingAction(),
 )
+
+NO_SEARCH_RESULTS_ITEM = ExtensionSmallResultItem(
+    icon=ITEM_ICON, name="No matching entries found...", on_enter=DoNothingAction()
+)
+
+
+def more_results_available_item(cnt):
+    return ExtensionSmallResultItem(
+        icon=EMPTY_ICON,
+        name="...{} more results available, please refine the search query...".format(
+            cnt
+        ),
+        on_enter=DoNothingAction(),
+    )
 
 
 def keepassxc_cli_error_item(message):
     return ExtensionResultItem(
         icon=ERROR_ICON,
-        name="Error while calling keepassxc-cli",
+        name="Error while calling keepassxc CLI",
         description=message,
         on_enter=DoNothingAction(),
     )
@@ -146,16 +161,21 @@ class KeywordQueryEventListener(EventListener):
     def render_search_results(self, keyword, entries, extension):
         max_items = int(extension.get_max_result_items())
         results = []
-        for e in entries[:max_items]:
-            action = ActionList(
-                [
-                    SetUserQueryAction("{} {}".format(keyword, e)),
-                    ExtensionCustomAction({"action": "activate_entry", "entry": e}),
-                ]
-            )
-            results.append(
-                ExtensionSmallResultItem(icon=ITEM_ICON, name=e, on_enter=action)
-            )
+        if not entries:
+            results.append(NO_SEARCH_RESULTS_ITEM)
+        else:
+            for e in entries[:max_items]:
+                action = ActionList(
+                    [
+                        SetUserQueryAction("{} {}".format(keyword, e)),
+                        ExtensionCustomAction({"action": "activate_entry", "entry": e}),
+                    ]
+                )
+                results.append(
+                    ExtensionSmallResultItem(icon=ITEM_ICON, name=e, on_enter=action)
+                )
+            if len(entries) > max_items:
+                results.append(more_results_available_item(len(entries) - max_items))
         return RenderResultListAction(results)
 
     def process_keyword_query(self, event, extension):

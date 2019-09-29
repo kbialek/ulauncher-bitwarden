@@ -58,7 +58,14 @@ class KeepassxcDatabase:
             return True
 
     def search(self, query):
-        return ["NOTHING TO SEE HERE"]
+        (err, out) = self.run_cli("locate", "-q", self.path, query)
+        if err:
+            if "No results for that" in err:
+                return []
+            else:
+                raise KeepassxcCliError(err)
+        else:
+            return out.splitlines()
 
     def can_execute_cli(self):
         try:
