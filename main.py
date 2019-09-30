@@ -22,23 +22,25 @@ from keepassxc_db import (
 )
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
 
-UNLOCK_ICON = "images/icon.svg"
-ERROR_ICON = "images/icon.svg"
-ITEM_ICON = "images/icon.svg"
-CLIP_ICON = "images/icon.svg"
-EMPTY_ICON = "images/icon.svg"
+SEARCH_ICON = "images/keepassxc-search.svg"
+UNLOCK_ICON = "images/keepassxc-search-locked.svg"
+EMPTY_ICON = "images/empty.png"
+ERROR_ICON = "images/error.svg"
+ITEM_ICON = "images/key.svg"
+COPY_ICON = "images/copy.svg"
+NOT_FOUND_ICON = "images/not_found.svg"
 
 KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
     icon=ERROR_ICON,
     name="Cannot find or execute keepassxc-cli",
-    description="Please make sure keepassxc-cli is installed and accessible",
+    description="Please make sure that keepassxc-cli is installed and accessible",
     on_enter=DoNothingAction(),
 )
 
 KEEPASSXC_DB_NOT_FOUND_ITEM = ExtensionResultItem(
     icon=ERROR_ICON,
     name="Cannot find the database file",
-    description="Check the password database file path in extension preferences",
+    description="Please verify the password database file path in extension preferences",
     on_enter=DoNothingAction(),
 )
 
@@ -49,22 +51,18 @@ NEED_PASSPHRASE_ITEM = ExtensionResultItem(
     on_enter=ExtensionCustomAction({"action": "read_passphrase"}),
 )
 
-WRONG_PASSPHRASE_ITEM = ExtensionResultItem(
-    icon=UNLOCK_ICON,
-    name="Wrong passphrase, please try again",
-    description="Enter passphrase to unlock the KeePassXC database",
-    on_enter=ExtensionCustomAction({"action": "read_passphrase"}),
-)
-
 ENTER_QUERY_ITEM = ExtensionResultItem(
-    icon=ITEM_ICON,
-    name="Enter search terms...",
-    description="Please start typing to see results",
+    icon=SEARCH_ICON,
+    name="Enter search query...",
+    description="Please enter your search query",
     on_enter=DoNothingAction(),
 )
 
-NO_SEARCH_RESULTS_ITEM = ExtensionSmallResultItem(
-    icon=ITEM_ICON, name="No matching entries found...", on_enter=DoNothingAction()
+NO_SEARCH_RESULTS_ITEM = ExtensionResultItem(
+    icon=NOT_FOUND_ICON,
+    name="No matching entries found...",
+    description="Please check spelling or make the query less specific",
+    on_enter=DoNothingAction(),
 )
 
 
@@ -200,7 +198,7 @@ class KeywordQueryEventListener(EventListener):
                 if attr == "Password":
                     items.append(
                         ExtensionSmallResultItem(
-                            icon=CLIP_ICON,
+                            icon=COPY_ICON,
                             name="Copy password to the clipboard",
                             on_enter=action,
                         )
@@ -208,7 +206,7 @@ class KeywordQueryEventListener(EventListener):
                 else:
                     items.append(
                         ExtensionResultItem(
-                            icon=CLIP_ICON,
+                            icon=COPY_ICON,
                             name="{}: {}".format(attr_nice.capitalize(), val),
                             description="Copy {} to the clipboard".format(attr_nice),
                             on_enter=action,

@@ -44,11 +44,12 @@ sep 25
 
 TODO MVP:
 =========
-- make real icons
-- set-icon-from-file for the passphrase entry window, to match the extension icon
 
 TODO MVP+:
 ==========
+- gtk: force passphrase entry window to the top every time
+- gtk: make pp entry window show "ulauncher-keepassxc" as the app name instead of "Main.py"
+- gtk: set-icon-from-file for the passphrase entry window, to match the extension icon
 - make nice attribute names
 - show icon in notifications
 - ?show passphrase window again with err message if wrong passphrase entered
@@ -65,6 +66,7 @@ TODO MVP+:
 
 DONE:
 =====
+- make real icons
 - implement lock timeout: erase passphrase after X seconds of not using the extension (set in preferences)
 - remove the "/" prefix in entry names
 - show notification when something is copied to clipboard
