@@ -1,7 +1,7 @@
 import gi
 
-gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GLib
+gi.require_version("Notify", "0.7")
+from gi.repository import Notify
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
 from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
@@ -20,11 +20,12 @@ from keepassxc_db import (
     KeepassxcFileNotFoundError,
     KeepassxcCliError,
 )
+from gtk_passphrase_entry import GtkPassphraseEntryWindow
 
 UNLOCK_ICON = "images/icon.svg"
 ERROR_ICON = "images/icon.svg"
 ITEM_ICON = "images/icon.svg"
-PASSWORD_ICON = "images/icon.svg"
+CLIP_ICON = "images/icon.svg"
 EMPTY_ICON = "images/icon.svg"
 
 KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
@@ -45,14 +46,14 @@ NEED_PASSPHRASE_ITEM = ExtensionResultItem(
     icon=UNLOCK_ICON,
     name="Unlock KeePassXC database",
     description="Enter passphrase to unlock the KeePassXC database",
-    on_enter=ExtensionCustomAction({"action": "need_passphrase"}),
+    on_enter=ExtensionCustomAction({"action": "read_passphrase"}),
 )
 
 WRONG_PASSPHRASE_ITEM = ExtensionResultItem(
     icon=UNLOCK_ICON,
     name="Wrong passphrase, please try again",
     description="Enter passphrase to unlock the KeePassXC database",
-    on_enter=ExtensionCustomAction({"action": "need_passphrase"}),
+    on_enter=ExtensionCustomAction({"action": "read_passphrase"}),
 )
 
 ENTER_QUERY_ITEM = ExtensionResultItem(
@@ -84,43 +85,6 @@ def keepassxc_cli_error_item(message):
         description=message,
         on_enter=DoNothingAction(),
     )
-
-
-class EntryWindow(Gtk.Window):
-    def __init__(self):
-        Gtk.Window.__init__(self, title="Enter passphrase")
-        self.set_size_request(200, 100)
-
-        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        self.add(vbox)
-
-        self.passphrase = ""
-        self.entry = Gtk.Entry()
-        self.entry.set_text("")
-        self.entry.set_editable(True)
-        self.entry.set_visibility(False)
-        self.entry.connect("activate", self.enter_pressed)
-        self.entry.connect("key-press-event", self.key_pressed)
-        vbox.pack_start(self.entry, True, True, 0)
-
-    def close_window(self):
-        self.destroy()
-        Gtk.main_quit()
-
-    def enter_pressed(self, entry):
-        self.passphrase = entry.get_text()
-        self.close_window()
-
-    def key_pressed(self, widget, event):
-        if event.hardware_keycode == 9:
-            self.passphrase = ""
-            self.close_window()
-
-    def read_passphrase(self):
-        self.connect("destroy", Gtk.main_quit)
-        self.show_all()
-        Gtk.main()
-        return self.passphrase
 
 
 class KeepassxcExtension(Extension):
@@ -208,21 +172,33 @@ class KeywordQueryEventListener(EventListener):
         for attr in ["Password", "UserName", "URL", "Notes"]:
             val = attrs.get(attr, "")
             if val:
+                action = ActionList(
+                    [
+                        ExtensionCustomAction(
+                            {
+                                "action": "show_notification",
+                                "summary": "{} copied to the clipboard.".format(attr),
+                            }
+                        ),
+                        CopyToClipboardAction(val),
+                    ]
+                )
+
                 if attr == "Password":
                     items.append(
                         ExtensionSmallResultItem(
-                            icon=PASSWORD_ICON,
+                            icon=CLIP_ICON,
                             name="Copy password to the clipboard",
-                            on_enter=CopyToClipboardAction(val),
+                            on_enter=action,
                         )
                     )
                 else:
                     items.append(
                         ExtensionResultItem(
-                            icon=ITEM_ICON,
+                            icon=CLIP_ICON,
                             name="{}: {}".format(attr, val),
-                            description="Copy to the clipboard",
-                            on_enter=CopyToClipboardAction(val),
+                            description="Copy {} to the clipboard".format(attr),
+                            on_enter=action,
                         )
                     )
         return RenderResultListAction(items)
@@ -238,13 +214,15 @@ class ItemEnterEventListener(EventListener):
         try:
             data = event.get_data()
             action = data.get("action", None)
-            if action == "need_passphrase":
+            if action == "read_passphrase":
                 return self.read_verify_passphrase(extension)
             elif action == "activate_entry":
                 keyword = data.get("keyword", None)
                 entry = data.get("entry", None)
                 extension.set_active_entry(keyword, entry)
                 return SetUserQueryAction("{} {}".format(keyword, entry))
+            elif action == "show_notification":
+                Notify.Notification.new(data.get("summary")).show()
         except KeepassxcCliNotFoundError:
             return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
         except KeepassxcFileNotFoundError:
@@ -253,16 +231,15 @@ class ItemEnterEventListener(EventListener):
             return RenderResultListAction([keepassxc_cli_error_item(e.message)])
 
     def read_verify_passphrase(self, extension):
-        win = EntryWindow()
-        pp = win.read_passphrase()
-        if not pp is None:
-            if self.keepassxc_db.validate_and_set_passphrase(pp):
-                # TODO notify of success
-                pass
-            else:
-                # TODO notify of failure
-                pass
+        win = GtkPassphraseEntryWindow(
+            verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
+        )
+        win.read_passphrase()
+        if not self.keepassxc_db.need_passphrase():
+            Notify.Notification.new("KeePassXC database unlocked.").show()
 
 
 if __name__ == "__main__":
+    Notify.init("ulauncher-keepassxc")
     KeepassxcExtension().run()
+    Notify.uninit()

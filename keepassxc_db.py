@@ -48,7 +48,7 @@ class KeepassxcDatabase:
     def need_passphrase(self):
         return self.passphrase is None
 
-    def validate_and_set_passphrase(self, pp):
+    def verify_and_set_passphrase(self, pp):
         self.passphrase = pp
         (err, out) = self.run_cli("ls", "-q", self.path)
         if err:
