@@ -16,6 +16,11 @@ class KeepassxcCliError(Exception):
     def __init__(self, message):
         self.message = message
 
+def pretty_entry_fmt(s):
+    return s[1:]
+
+def cli_entry_fmt(s):
+    return "/" + s
 
 class KeepassxcDatabase:
     """ Wrapper around keepassxc-cli """
@@ -65,12 +70,15 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliError(err)
         else:
-            return out.splitlines()
+            # Entry names in keepassxc-cli start with a "/" (because kdbx files have a tree structure with "folders" etc)
+            # For aesthetic purposes, we are removing the leading "/" here by blindly cutting off the first char
+            # but will add it back any time we need to pass an entry name to the CLI as an argument
+            return [pretty_entry_fmt(l) for l in out.splitlines()]
 
     def get_entry_details(self, entry):
         attrs = dict()
         for attr in ["UserName", "Password", "URL", "Notes"]:
-            (err, out) = self.run_cli("show", "-q", "-a", attr, self.path, entry)
+            (err, out) = self.run_cli("show", "-q", "-a", attr, self.path, cli_entry_fmt(entry))
             if err:
                 raise KeepassxcCliError(err)
             else:

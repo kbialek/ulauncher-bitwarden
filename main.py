@@ -183,7 +183,9 @@ class KeywordQueryEventListener(EventListener):
                         ExtensionCustomAction(
                             {
                                 "action": "show_notification",
-                                "summary": "{} copied to the clipboard.".format(attr_nice.capitalize()),
+                                "summary": "{} copied to the clipboard.".format(
+                                    attr_nice.capitalize()
+                                ),
                             }
                         ),
                         CopyToClipboardAction(val),
