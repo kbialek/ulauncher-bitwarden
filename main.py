@@ -156,28 +156,34 @@ class KeywordQueryEventListener(EventListener):
 
     def process_keyword_query(self, event, extension):
         query_keyword = event.get_keyword()
-        query_args = event.get_argument()
-        if not query_args:
+        query_arg = event.get_argument()
+        if not query_arg:
             return RenderResultListAction([ENTER_QUERY_ITEM])
         else:
-            if extension.check_and_reset_active_entry(query_keyword, query_args):
-                return self.show_active_entry(query_args)
+            if extension.check_and_reset_active_entry(query_keyword, query_arg):
+                return self.show_active_entry(query_arg)
             else:
-                entries = self.keepassxc_db.search(query_args)
+                entries = self.keepassxc_db.search(query_arg)
                 return self.render_search_results(query_keyword, entries, extension)
 
     def show_active_entry(self, entry):
         items = []
-        attrs = self.keepassxc_db.get_entry_details(entry)
-        for attr in ["Password", "UserName", "URL", "Notes"]:
-            val = attrs.get(attr, "")
+        details = self.keepassxc_db.get_entry_details(entry)
+        attrs = [
+            ("Password", "password"),
+            ("UserName", "username"),
+            ("URL", "URL"),
+            ("Notes", "notes"),
+        ]
+        for attr, attr_nice in attrs:
+            val = details.get(attr, "")
             if val:
                 action = ActionList(
                     [
                         ExtensionCustomAction(
                             {
                                 "action": "show_notification",
-                                "summary": "{} copied to the clipboard.".format(attr),
+                                "summary": "{} copied to the clipboard.".format(attr_nice.capitalize()),
                             }
                         ),
                         CopyToClipboardAction(val),
@@ -196,8 +202,8 @@ class KeywordQueryEventListener(EventListener):
                     items.append(
                         ExtensionResultItem(
                             icon=CLIP_ICON,
-                            name="{}: {}".format(attr, val),
-                            description="Copy {} to the clipboard".format(attr),
+                            name="{}: {}".format(attr_nice.capitalize(), val),
+                            description="Copy {} to the clipboard".format(attr_nice),
                             on_enter=action,
                         )
                     )

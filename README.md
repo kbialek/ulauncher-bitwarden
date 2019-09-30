@@ -51,6 +51,7 @@ TODO MVP:
 
 TODO MVP+:
 ==========
+- make nice attribute names
 - show icon in notifications
 - ?show passphrase window again with err message if wrong passphrase entered
 - if user activates entry but doesnt do anything then presses backspace, reset userQuery to previous search term
