@@ -23,10 +23,11 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         self.entry.connect("key-press-event", self.key_pressed)
         vbox.pack_start(self.entry, True, True, 0)
 
-        self.label = Gtk.Label("Enter passphrase")
+        self.label = Gtk.Label("")
         vbox.pack_start(self.label, True, True, 0)
 
         self.set_position(Gtk.WindowPosition.CENTER)
+        self.set_resizable(False)
 
     def close_window(self):
         self.destroy()

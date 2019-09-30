@@ -12,7 +12,7 @@
       "id": "search",
       "type": "keyword",
       "name": "KeePassXC database search",
-      "description": "Search KeePassXC database",
+      "description": "Search the KeePassXC database and copy passwords and other attributes to the clipboard",
       "default_value": "kp"
     },
     {
@@ -24,8 +24,15 @@
     {
       "id": "max-results",
       "type": "input",
-      "name": "Maximum number of results to display",
+      "name": "Maximum number of search results to display",
       "default_value": "6"
+    },
+    {
+      "id": "inactivity-lock-timeout",
+      "type": "input",
+      "name": "Inactivity lock timeout",
+      "description": "Lock database if extension hasn't been used for a certain number of seconds. Set to 0 to never lock",
+      "default_value": "300"
     }
   ]
 }

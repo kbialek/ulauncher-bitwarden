@@ -44,7 +44,6 @@ sep 25
 
 TODO MVP:
 =========
-- implement lock timeout: erase passphrase after X seconds (set in preferences)
 - make real icons
 - set-icon-from-file for the passphrase entry window, to match the extension icon
 
@@ -66,6 +65,7 @@ TODO MVP+:
 
 DONE:
 =====
+- implement lock timeout: erase passphrase after X seconds of not using the extension (set in preferences)
 - remove the "/" prefix in entry names
 - show notification when something is copied to clipboard
 - show notification when correct passphrase is entered

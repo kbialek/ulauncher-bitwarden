@@ -1,5 +1,6 @@
 import subprocess
 import os
+from datetime import datetime, timedelta
 
 
 class KeepassxcCliNotFoundError(Exception):
@@ -16,23 +17,29 @@ class KeepassxcCliError(Exception):
     def __init__(self, message):
         self.message = message
 
+
 def pretty_entry_fmt(s):
     return s[1:]
 
+
 def cli_entry_fmt(s):
     return "/" + s
+
 
 class KeepassxcDatabase:
     """ Wrapper around keepassxc-cli """
 
     def __init__(self):
+        self.inactivity_lock_timeout = 0
+        self.passphrase_expires_at = None
         self.cli = "keepassxc-cli"
         self.cli_checked = False
         self.path = None
         self.path_checked = False
         self.passphrase = None
 
-    def initialize(self, path):
+    def initialize(self, path, inactivity_lock_timeout):
+        self.inactivity_lock_timeout = inactivity_lock_timeout
         if not self.cli_checked:
             if self.can_execute_cli():
                 self.cli_checked = True
@@ -51,7 +58,12 @@ class KeepassxcDatabase:
                 raise KeepassxcFileNotFoundError()
 
     def need_passphrase(self):
-        return self.passphrase is None
+        if self.passphrase is None:
+            return True
+        elif self.inactivity_lock_timeout:
+            return datetime.now() > self.passphrase_expires_at
+        else:
+            return False
 
     def verify_and_set_passphrase(self, pp):
         self.passphrase = pp
@@ -78,7 +90,9 @@ class KeepassxcDatabase:
     def get_entry_details(self, entry):
         attrs = dict()
         for attr in ["UserName", "Password", "URL", "Notes"]:
-            (err, out) = self.run_cli("show", "-q", "-a", attr, self.path, cli_entry_fmt(entry))
+            (err, out) = self.run_cli(
+                "show", "-q", "-a", attr, self.path, cli_entry_fmt(entry)
+            )
             if err:
                 raise KeepassxcCliError(err)
             else:
@@ -102,4 +116,10 @@ class KeepassxcDatabase:
             )
         except FileNotFoundError:
             raise KeepassxcCliNotFoundError()
+
+        if self.inactivity_lock_timeout:
+            self.passphrase_expires_at = datetime.now() + timedelta(
+                seconds=self.inactivity_lock_timeout
+            )
+
         return (cp.stderr.decode("utf-8"), cp.stdout.decode("utf-8"))

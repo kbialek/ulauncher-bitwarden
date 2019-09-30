@@ -101,7 +101,10 @@ class KeepassxcExtension(Extension):
         return self.preferences["database-path"]
 
     def get_max_result_items(self):
-        return self.preferences["max-results"]
+        return int(self.preferences["max-results"])
+
+    def get_inactivity_lock_timeout(self):
+        return int(self.preferences["inactivity-lock-timeout"])
 
     def set_active_entry(self, keyword, entry):
         self.active_entry = (keyword, entry)
@@ -123,7 +126,9 @@ class KeywordQueryEventListener(EventListener):
 
     def on_event(self, event, extension):
         try:
-            self.keepassxc_db.initialize(extension.get_db_path())
+            self.keepassxc_db.initialize(
+                extension.get_db_path(), extension.get_inactivity_lock_timeout()
+            )
 
             if self.keepassxc_db.need_passphrase():
                 return RenderResultListAction([NEED_PASSPHRASE_ITEM])
@@ -137,7 +142,7 @@ class KeywordQueryEventListener(EventListener):
             return RenderResultListAction([keepassxc_cli_error_item(e.message)])
 
     def render_search_results(self, keyword, entries, extension):
-        max_items = int(extension.get_max_result_items())
+        max_items = extension.get_max_result_items()
         items = []
         if not entries:
             items.append(NO_SEARCH_RESULTS_ITEM)
