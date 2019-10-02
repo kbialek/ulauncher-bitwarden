@@ -1,84 +1,53 @@
-ulauncher-keepassxc
-===================
+# ulauncher-keepassxc
 
-Features:
-=========
-- prompt user to enter the database passphrase and cache it for a certain amount of time
-- search for and copy passwords from a KeePassXC database (.kdbx file)
+A [Ulauncher](https://ulauncher.io/) extension to search your [KeePassXC](https://keepassxc.org/) password manager database and copy passwords to the clipboard.
 
-The Plan:
-=========
-- on any invocation
-	- check if need passphrase to unlock db
-	- if unnecessary or have it cached, proceed
-	- if dont have it, show "Enter passphrase" as the only item
-		- use GTK to pop up an entry dialog, verify and cache the input (?)
-- search: use "keepassxc-cli locate" to search for entries matching the query
-- copy: when user selects an entry, use the cli "clip" command to copy password to clipboard
+## Features
 
-App states:
-===========
+- Quickly search through the database entries by name, and copy passwords/usernames/URLs to the clipboard
+- Work with any file (.kdbx etc) that can be accessed by the KeePassXC itself via the `keepassxc-cli` command line tool
+- Support files locked with a passphrase. The extension asks for the passphrase and stores it in memory for a configurable amount of time
+- Doesn't require the KeePassXC app to be running
 
-db file    | passphrase | cli       | what to do
------------|------------|-----------|-----------------------
--          | -          | not found | warn on every invocation
-not found  | -          | -         | warn on every invocation
-found      | none       | yes       | ask to enter, every time
-found      | invalid    | yes       | ask to re-enter, every time
-found      | dont need  | yes       | ok
+## Requirements
 
+- Install a recent version of [KeePassXC](https://keepassxc.org/download/)
+- Make sure you can execute `keepassxc-cli` in a terminal
 
-Log:
-====
-sep 30
-- drive towards MVP!
+## Installation
 
-sep 27
-- woohoo x2! pretty good code structure, got the passphrase flow working-ish
-- next big step: SHOW REAL DB SEARCH RESULTS!
+Open Ulauncher preferences window -> Extensions -> "Add extension" and paste the following url:
 
-sep 25
-- woohoo! ulauncher extension that asks for a passphrase! it works!
-- making a GTK password entry window
-	- it works!
+```
+https://github.com/pbkhrv/ulauncher-keepassxc
+```
 
-TODO MVP:
-=========
+## Configuration
 
-TODO MVP+:
-==========
-- gtk: force passphrase entry window to the top every time
-- gtk: make pp entry window show "ulauncher-keepassxc" as the app name instead of "Main.py"
-- gtk: set-icon-from-file for the passphrase entry window, to match the extension icon
-- make nice attribute names
-- show icon in notifications
-- ?show passphrase window again with err message if wrong passphrase entered
-- if user activates entry but doesnt do anything then presses backspace, reset userQuery to previous search term
-- fuzzy search!
-- handle "preferences set" event or whaterver
-- support key file
-- support yubikey
-- find a graceful way to display notes - would love some preview window from which i can copy text, good for CCs etc
-- show username(?) in description for search result items
-- paginate results: "show more" pagination when too many results
-- show "recently activated entries" if no search params entered (instead of empty list)
-- if cli not accessible, open page with keepassxc-cli documentation
+- `Password database location`: path to the password database file that you want to access through Ulauncher. *This is the only preference that you need to set before you can use the extension.*
 
-DONE:
-=====
-- make real icons
-- implement lock timeout: erase passphrase after X seconds of not using the extension (set in preferences)
-- remove the "/" prefix in entry names
-- show notification when something is copied to clipboard
-- show notification when correct passphrase is entered
-- size the passphrase window more better
-- tell user when incorrect pp is entered
-- move EntryWindow gtk code into separate file
-- center the passphrase window
-- when entry is activated, show following items:
-	- every key (except for password) - if selected, copy that to clipboard
-	- "copy password to clipboard", without showing it on screen
-- show "enter more words" if result list exceeds "max items"
-- search: feed passphrase into cli subprocess
-- use "locate anything-at-all" command to check if we can open db file, before asking for passphrase. do this on first run and cache result for later.
-- simple GTK passphrase entry window
+- `Inactivity lock timeout`: forces you to re-enter the passphrase after you haven't used the extension for a while. By default it's set to 600 seconds (10 minutes). If you'd rather not re-enter it, you can set the value to 0, but that's probably not a great idea. NOTE: The cached passphrase is only stored in memory, so you'll need to re-enter it if you reboot your computer or restart Ulauncher.
+
+## Usage
+
+Open Ulauncher and type in "kp " to start the extension. If your password database is locked with a passphrase, it'll ask you to enter it:
+
+![Unlock Database](images/screenshots/unlock-database.png)
+
+Once unlocked, search the database for Github logins:
+
+![Search](images/screenshots/search1.png)
+
+Look at the `Github work` entry:
+
+![Entry details](images/screenshots/details1.png)
+
+## Inspiration and thanks
+
+I loved Alfred on MacOS, and now I love Ulauncher on Linux. The Python API is simple yet powerful.
+
+Thanks to [pass-ulauncher](https://github.com/yannishuber/pass-ulauncher) for the overall structure and for teaching me a few things about the API. I aaaalmost switched away from KeePassXC to [pass: the standard unix password manager](https://www.passwordstore.org/) because of it.
+
+[The Noun Project](https://thenounproject.com/) for the icons - there's nothing else quite like it.
+
+Finally, thanks to [KeePassXC](https://keepassxc.org/) on Linux and [KyPass](https://www.kyuran.be/software/kypass/) on iOS.
