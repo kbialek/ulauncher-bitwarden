@@ -44,7 +44,7 @@ Look at the `Github work` entry:
 
 ## Inspiration and thanks
 
-I loved Alfred on MacOS, and now I love Ulauncher on Linux. The Python API is simple yet powerful.
+I loved Alfred on MacOS, and now I love Ulauncher on Linux. The Python API is a joy to work with.
 
 Thanks to [pass-ulauncher](https://github.com/yannishuber/pass-ulauncher) for the overall structure and for teaching me a few things about the API. I aaaalmost switched away from KeePassXC to [pass: the standard unix password manager](https://www.passwordstore.org/) because of it.
 
