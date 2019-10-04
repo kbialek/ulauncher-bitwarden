@@ -4,7 +4,11 @@ gi.require_version("Notify", "0.7")
 from gi.repository import Notify
 from ulauncher.api.client.Extension import Extension
 from ulauncher.api.client.EventListener import EventListener
-from ulauncher.api.shared.event import KeywordQueryEvent, ItemEnterEvent
+from ulauncher.api.shared.event import (
+    KeywordQueryEvent,
+    ItemEnterEvent,
+    PreferencesUpdateEvent,
+)
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.item.ExtensionSmallResultItem import ExtensionSmallResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
@@ -93,6 +97,9 @@ class KeepassxcExtension(Extension):
         self.keepassxc_db = KeepassxcDatabase()
         self.subscribe(KeywordQueryEvent, KeywordQueryEventListener(self.keepassxc_db))
         self.subscribe(ItemEnterEvent, ItemEnterEventListener(self.keepassxc_db))
+        self.subscribe(
+            PreferencesUpdateEvent, PreferencesUpdateEventListener(self.keepassxc_db)
+        )
         self.active_entry = None
 
     def get_db_path(self):
@@ -248,6 +255,20 @@ class ItemEnterEventListener(EventListener):
         win.read_passphrase()
         if not self.keepassxc_db.need_passphrase():
             Notify.Notification.new("KeePassXC database unlocked.").show()
+
+
+class PreferencesUpdateEventListener(EventListener):
+    """ Handle preferences updates """
+
+    def __init__(self, keepassxc_db):
+        self.keepassxc_db = keepassxc_db
+
+    def on_event(self, event, extension):
+        if event.new_value != event.old_value:
+            if event.id == "database-path":
+                self.keepassxc_db.change_path(event.new_value)
+            elif event.id == "inactivity-lock-timeout":
+                self.keepassxc_db.change_inactivity_lock_timeout(int(event.new_value))
 
 
 if __name__ == "__main__":

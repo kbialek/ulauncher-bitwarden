@@ -30,15 +30,22 @@ class KeepassxcDatabase:
     """ Wrapper around keepassxc-cli """
 
     def __init__(self):
-        self.inactivity_lock_timeout = 0
-        self.passphrase_expires_at = None
         self.cli = "keepassxc-cli"
         self.cli_checked = False
         self.path = None
         self.path_checked = False
         self.passphrase = None
+        self.passphrase_expires_at = None
+        self.inactivity_lock_timeout = 0
 
     def initialize(self, path, inactivity_lock_timeout):
+        """
+        Check that
+        - we can call invoke the CLI
+        - database file at specified path exists
+
+        Don't call more than once.
+        """
         self.inactivity_lock_timeout = inactivity_lock_timeout
         if not self.cli_checked:
             if self.can_execute_cli():
@@ -57,11 +64,30 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcFileNotFoundError()
 
+    def change_path(self, new_path):
+        """
+        Change the path to the database file and lock the database.
+        """
+        self.path = new_path
+        self.path_checked = False
+        self.passphrase = None
+        self.passphrase_expires_at = None
+
+    def change_inactivity_lock_timeout(self, secs):
+        """
+        Change the inactivity lock timeout and immediately lock the database.
+        """
+        self.inactivity_lock_timeout = secs
+        self.passphrase = None
+        self.passphrase_expires_at = None
+
     def need_passphrase(self):
         if self.passphrase is None:
             return True
         elif self.inactivity_lock_timeout:
-            return datetime.now() > self.passphrase_expires_at
+            if datetime.now() > self.passphrase_expires_at:
+                self.passphrase = None
+                return True
         else:
             return False
 
