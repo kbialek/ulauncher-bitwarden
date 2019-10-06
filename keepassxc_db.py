@@ -53,8 +53,9 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliNotFoundError()
 
+        path = os.path.expanduser(path)
         if path != self.path:
-            self.path = os.path.expanduser(path)
+            self.path = path
             self.path_checked = False
             self.passphrase = None
 
