@@ -68,7 +68,7 @@ class KeepassxcDatabase:
         """
         Change the path to the database file and lock the database.
         """
-        self.path = new_path
+        self.path = os.path.expanduser(new_path)
         self.path_checked = False
         self.passphrase = None
         self.passphrase_expires_at = None
