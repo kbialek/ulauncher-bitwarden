@@ -50,6 +50,15 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliNotFoundError()
 
+    def change_server_url(self, new_server_url):
+        """
+        Change the path to the database file and lock the database.
+        """
+        self.logout()
+        self.server = new_server_url
+        self.passphrase = None
+        self.passphrase_expires_at = None
+
     def change_email(self, new_email):
         """
         Change the path to the database file and lock the database.

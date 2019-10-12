@@ -276,7 +276,9 @@ class PreferencesUpdateEventListener(EventListener):
 
     def on_event(self, event, extension):
         if event.new_value != event.old_value:
-            if event.id == "email":
+            if event.id == "server-url":
+                self.keepassxc_db.change_server_url(event.new_value)
+            elif event.id == "email":
                 self.keepassxc_db.change_email(event.new_value)
             elif event.id == "inactivity-lock-timeout":
                 self.keepassxc_db.change_inactivity_lock_timeout(int(event.new_value))
