@@ -18,7 +18,7 @@ from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAct
 from ulauncher.api.shared.action.ActionList import ActionList
 from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
-from keepassxc_db import (
+from bitwarden import (
     KeepassxcDatabase,
     KeepassxcCliNotFoundError,
     KeepassxcFileNotFoundError,
@@ -50,8 +50,8 @@ KEEPASSXC_DB_NOT_FOUND_ITEM = ExtensionResultItem(
 
 NEED_PASSPHRASE_ITEM = ExtensionResultItem(
     icon=UNLOCK_ICON,
-    name="Unlock KeePassXC database",
-    description="Enter passphrase to unlock the KeePassXC database",
+    name="Login to Bitwarden",
+    description="Enter passphrase to login the Bitwarden server",
     on_enter=ExtensionCustomAction({"action": "read_passphrase"}),
 )
 
@@ -102,8 +102,11 @@ class KeepassxcExtension(Extension):
         )
         self.active_entry = None
 
-    def get_db_path(self):
-        return self.preferences["database-path"]
+    def get_server_url(self):
+        return self.preferences["server-url"]
+
+    def get_email(self):
+        return self.preferences["email"]
 
     def get_max_result_items(self):
         return int(self.preferences["max-results"])
@@ -115,7 +118,7 @@ class KeepassxcExtension(Extension):
         self.active_entry = (keyword, entry)
 
     def check_and_reset_active_entry(self, keyword, entry):
-        r = self.active_entry == (keyword, entry)
+        r = self.active_entry is not None and self.active_entry[1]["name"] == entry
         self.active_entry = None
         return r
 
@@ -132,10 +135,12 @@ class KeywordQueryEventListener(EventListener):
     def on_event(self, event, extension):
         try:
             self.keepassxc_db.initialize(
-                extension.get_db_path(), extension.get_inactivity_lock_timeout()
+                extension.get_server_url(),
+                extension.get_email(),
+                extension.get_inactivity_lock_timeout()
             )
 
-            if self.keepassxc_db.need_passphrase():
+            if self.keepassxc_db.need_login():
                 return RenderResultListAction([NEED_PASSPHRASE_ITEM])
             else:
                 return self.process_keyword_query(event, extension)
@@ -158,7 +163,7 @@ class KeywordQueryEventListener(EventListener):
                     keep_app_open=True,
                 )
                 items.append(
-                    ExtensionSmallResultItem(icon=ITEM_ICON, name=e, on_enter=action)
+                    ExtensionSmallResultItem(icon=ITEM_ICON, name=e["name"], on_enter=action)
                 )
             if len(entries) > max_items:
                 items.append(more_results_available_item(len(entries) - max_items))
@@ -180,10 +185,10 @@ class KeywordQueryEventListener(EventListener):
         items = []
         details = self.keepassxc_db.get_entry_details(entry)
         attrs = [
-            ("Password", "password"),
-            ("UserName", "username"),
-            ("URL", "URL"),
-            ("Notes", "notes"),
+            ("password", "password"),
+            ("username", "username"),
+            ("uri", "URL"),
+            ("totp", "totp"),
         ]
         for attr, attr_nice in attrs:
             val = details.get(attr, "")
@@ -238,7 +243,7 @@ class ItemEnterEventListener(EventListener):
                 keyword = data.get("keyword", None)
                 entry = data.get("entry", None)
                 extension.set_active_entry(keyword, entry)
-                return SetUserQueryAction("{} {}".format(keyword, entry))
+                return SetUserQueryAction("{} {}".format(keyword, entry["name"]))
             elif action == "show_notification":
                 Notify.Notification.new(data.get("summary")).show()
         except KeepassxcCliNotFoundError:
@@ -253,7 +258,7 @@ class ItemEnterEventListener(EventListener):
             verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
         )
         win.read_passphrase()
-        if not self.keepassxc_db.need_passphrase():
+        if not self.keepassxc_db.need_login():
             Notify.Notification.new("KeePassXC database unlocked.").show()
 
 
