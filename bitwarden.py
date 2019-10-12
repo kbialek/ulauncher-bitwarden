@@ -50,12 +50,12 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliNotFoundError()
 
-    def change_path(self, new_path):
+    def change_email(self, new_email):
         """
         Change the path to the database file and lock the database.
         """
-        self.path = os.path.expanduser(new_path)
-        self.path_checked = False
+        self.logout()
+        self.email = new_email
         self.passphrase = None
         self.passphrase_expires_at = None
 
@@ -92,6 +92,12 @@ class KeepassxcDatabase:
         else:
             self.session = out
             return True
+
+    def logout(self):
+        self.session = None
+        (err, out) = self.run_cli("logout")
+        if err:
+            raise KeepassxcCliError(err)
 
     def unlock(self, pp):
         (err, out) = self.run_cli("unlock", pp, "--raw")
