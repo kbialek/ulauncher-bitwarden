@@ -198,7 +198,7 @@ class KeywordQueryEventListener(EventListener):
                         ExtensionCustomAction(
                             {
                                 "action": "show_notification",
-                                "summary": "{} copied to the clipboard.".format(
+                                "summary": "{} copied to clipboard.".format(
                                     attr_nice.capitalize()
                                 ),
                             }
@@ -207,11 +207,12 @@ class KeywordQueryEventListener(EventListener):
                     ]
                 )
 
-                if attr == "Password":
+                if attr == "password":
                     items.append(
-                        ExtensionSmallResultItem(
+                        ExtensionResultItem(
                             icon=COPY_ICON,
-                            name="Copy password to the clipboard",
+                            name="{}: ********".format(attr_nice.capitalize()),
+                            description="Copy password to clipboard".format(attr_nice),
                             on_enter=action,
                         )
                     )
@@ -220,7 +221,7 @@ class KeywordQueryEventListener(EventListener):
                         ExtensionResultItem(
                             icon=COPY_ICON,
                             name="{}: {}".format(attr_nice.capitalize(), val),
-                            description="Copy {} to the clipboard".format(attr_nice),
+                            description="Copy {} to clipboard".format(attr_nice),
                             on_enter=action,
                         )
                     )

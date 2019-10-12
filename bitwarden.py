@@ -118,7 +118,6 @@ class KeepassxcDatabase:
             return json.loads(out)
 
     def get_entry_details(self, entry):
-        print(entry)
         attrs = dict()
         for attr in ["username", "password", "totp", "uri"]:
             (err, out) = self.run_cli(
