@@ -2,7 +2,7 @@
 
 set -e
 
-EXTENSION_ID=com.github.pbkhrv.ulauncher-keepassxc
+EXTENSION_ID=com.github.kbialek.ulauncher-bitwarden
 ULAUNCHER_EXT_DIR=~/.local/share/ulauncher/extensions/
 
 # Remove whatever version of this extension is installed

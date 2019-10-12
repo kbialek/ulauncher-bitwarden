@@ -1,8 +1,8 @@
 {
   "required_api_version": "^2.0.0",
-  "name": "KeePassXC Search",
-  "description": "Quickly search your KeePassXC password manager database",
-  "developer_name": "Peter Bakhirev",
+  "name": "Bitwarden Search",
+  "description": "Quickly search your Bitwarden password manager database",
+  "developer_name": "Krzysztof Bialek",
   "icon": "images/keepassxc-search.svg",
   "options": {
     "query_debounce": 0.2
@@ -11,15 +11,21 @@
     {
       "id": "search",
       "type": "keyword",
-      "name": "KeePassXC database search",
-      "description": "Search the KeePassXC database and copy passwords and other attributes to the clipboard",
-      "default_value": "kp"
+      "name": "Bitwarden database search",
+      "description": "Search Bitwarden database and copy passwords and other attributes to the clipboard",
+      "default_value": "bw"
     },
     {
-      "id": "database-path",
+      "id": "server-url",
       "type": "input",
-      "name": "Password database location",
-      "default_value": "~/passwords.kdbx"
+      "name": "Bitwarden Server Url",
+      "default_value": "https://vault.bitwarden.com"
+    },
+    {
+      "id": "email",
+      "type": "input",
+      "name": "User e-mail address",
+      "default_value": ""
     },
     {
       "id": "max-results",
