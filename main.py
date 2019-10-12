@@ -163,7 +163,12 @@ class KeywordQueryEventListener(EventListener):
                     keep_app_open=True,
                 )
                 items.append(
-                    ExtensionSmallResultItem(icon=ITEM_ICON, name=e["name"], on_enter=action)
+                    ExtensionResultItem(
+                        icon=ITEM_ICON,
+                        name=e["name"],
+                        description=self.keepassxc_db.get_folder(e["folderId"]),
+                        on_enter=action,
+                    )
                 )
             if len(entries) > max_items:
                 items.append(more_results_available_item(len(entries) - max_items))

@@ -19,15 +19,6 @@ class KeepassxcCliError(Exception):
     def __init__(self, message):
         self.message = message
 
-
-def pretty_entry_fmt(s):
-    return s["name"]
-
-
-def cli_entry_fmt(s):
-    return "/" + s
-
-
 class KeepassxcDatabase:
     """ Wrapper around keepassxc-cli """
 
@@ -39,6 +30,7 @@ class KeepassxcDatabase:
         self.server = None
         self.email = None
         self.session = None
+        self.folders = None
         self.passphrase = None
         self.passphrase_expires_at = None
         self.inactivity_lock_timeout = 0
@@ -86,7 +78,11 @@ class KeepassxcDatabase:
             return False
 
     def verify_and_set_passphrase(self, pp):
-        return self.unlock(pp) or self.login(pp)
+        if self.unlock(pp) or self.login(pp):
+            self.list_folders()
+            return True
+        else:
+            return False
 
     def login(self, pp):
         (err, out) = self.run_cli("login", self.email, pp, "--raw")
@@ -106,6 +102,20 @@ class KeepassxcDatabase:
             self.session = out
             return True
 
+    def list_folders(self):
+        (err, out) = self.run_cli("list", "folders", "--session", self.session)
+        if err:
+            self.folders = None
+            return False
+        else:
+            self.folders = dict()
+            for item in json.loads(out):
+                self.folders[item["id"]] = item["name"]
+            return True
+
+    def get_folder(self, folder_id):
+        return self.folders[folder_id]
+
     def search(self, query):
         (err, out) = self.run_cli("list", "items", "--search", query, "--session", self.session)
         if err:
@@ -114,7 +124,6 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliError(err)
         else:
-            # return [pretty_entry_fmt(l) for l in json.loads(out)]
             return json.loads(out)
 
     def get_entry_details(self, entry):
