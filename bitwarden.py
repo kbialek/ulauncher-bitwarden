@@ -159,6 +159,8 @@ class KeepassxcDatabase:
         return self.folders[folder_id]
 
     def search(self, query):
+        if len(query) < 2:
+            return []
         (err, out) = self.run_cli("list", "items", "--search", query, "--session", self.session)
         if err:
             if "No results for that" in err:
@@ -192,6 +194,7 @@ class KeepassxcDatabase:
             return False
 
     def run_cli(self, *args):
+        print(args)
         try:
             cp = subprocess.run(
                 [self.cli, *args],
