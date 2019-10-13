@@ -77,12 +77,30 @@ class KeepassxcDatabase:
         self.passphrase_expires_at = None
 
     def need_login(self):
+        (err, out) = self.run_cli("login", "--check", "--response")
+        if err:
+            raise KeepassxcCliError(err)
+        else:
+            resp = json.loads(out)
+            if resp["success"] is False:
+                return True
+            elif self.inactivity_lock_timeout:
+                if datetime.now() > self.passphrase_expires_at:
+                    self.session = None
+                    return True
+            else:
+                return False
+
+    def need_unlock(self):
         if self.session is None:
             return True
-        elif self.inactivity_lock_timeout:
-            if datetime.now() > self.passphrase_expires_at:
-                self.session = None
-                return True
+        (err, out) = self.run_cli("unlock", "--check", "--response", "--session", self.session)
+        if err:
+            try:
+                resp = json.loads(err)
+                return resp["success"] is False
+            except JSONDecodeError:
+                raise KeepassxcCliError(err)
         else:
             return False
 

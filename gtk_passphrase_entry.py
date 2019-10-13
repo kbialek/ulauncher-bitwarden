@@ -5,8 +5,8 @@ from gi.repository import Gtk, GLib
 
 
 class GtkPassphraseEntryWindow(Gtk.Window):
-    def __init__(self, verify_passphrase_fn=None):
-        Gtk.Window.__init__(self, title="Bitwarden Login/Unlock")
+    def __init__(self, login_mode, verify_passphrase_fn=None):
+        Gtk.Window.__init__(self, title="Bitwarden Login" if login_mode else "Bitwarden Unlock")
 
         self.verify_passphrase_fn = verify_passphrase_fn
         self.verify_passphrase_fn = verify_passphrase_fn
@@ -14,8 +14,8 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         self.add(vbox)
 
-        self.label = Gtk.Label("Master Password")
-        vbox.pack_start(self.label, True, True, 0)
+        self.pp_label = Gtk.Label("Master Password")
+        vbox.pack_start(self.pp_label, True, True, 0)
 
         self.passphrase = ""
         self.password_entry = Gtk.Entry()
@@ -27,8 +27,7 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         self.password_entry.connect("key-press-event", self.key_pressed)
         vbox.pack_start(self.password_entry, True, True, 0)
 
-        self.label = Gtk.Label("Two Factor Authentication Code")
-        vbox.pack_start(self.label, True, True, 0)
+        self.mfa_label = Gtk.Label("Two Factor Authentication Code")
 
         self.mfa_entry = Gtk.Entry()
         self.mfa_entry.set_text("")
@@ -37,6 +36,8 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         self.mfa_entry.props.max_width_chars = 6
         self.mfa_entry.connect("activate", self.enter_pressed)
         self.mfa_entry.connect("key-press-event", self.key_pressed)
+        # if login_mode:
+        vbox.pack_start(self.mfa_label, True, True, 0)
         vbox.pack_start(self.mfa_entry, True, True, 0)
 
         self.set_position(Gtk.WindowPosition.CENTER)
@@ -66,10 +67,10 @@ class GtkPassphraseEntryWindow(Gtk.Window):
             self.close_window()
 
     def show_verifying_passphrase(self):
-        self.label.set_text("Verifying passphrase...")
+        self.pp_label.set_text("Verifying passphrase...")
 
     def show_incorrect_passphrase(self):
-        self.label.set_markup(
+        self.pp_label.set_markup(
             '<span foreground="red">Incorrect passphrase. Please try again.</span>'
         )
         self.password_entry.set_text("")

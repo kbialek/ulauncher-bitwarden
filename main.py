@@ -132,7 +132,7 @@ class KeywordQueryEventListener(EventListener):
                 extension.get_inactivity_lock_timeout()
             )
 
-            if self.keepassxc_db.need_login():
+            if self.keepassxc_db.need_login() or self.keepassxc_db.need_unlock():
                 return RenderResultListAction([NEED_PASSPHRASE_ITEM])
             else:
                 return self.process_keyword_query(event, extension)
@@ -204,6 +204,7 @@ class ItemEnterEventListener(EventListener):
 
     def read_verify_passphrase(self, extension):
         win = GtkPassphraseEntryWindow(
+            login_mode=self.keepassxc_db.need_login(),
             verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
         )
         win.read_passphrase()
