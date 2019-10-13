@@ -86,15 +86,19 @@ class KeepassxcDatabase:
         else:
             return False
 
-    def verify_and_set_passphrase(self, pp):
-        if self.unlock(pp) or self.login(pp):
+    def verify_and_set_passphrase(self, pp, mfa):
+        if self.unlock(pp) or self.login(pp, mfa):
             self.list_folders()
             return True
         else:
             return False
 
-    def login(self, pp):
-        (err, out) = self.run_cli("login", self.email, pp, "--raw")
+    def login(self, pp, mfa):
+        args = ["login", self.email, pp, "--raw"]
+        if mfa:
+            args.append("--code")
+            args.append(mfa)
+        (err, out) = self.run_cli(*args)
         if err:
             self.session = None
             return False
