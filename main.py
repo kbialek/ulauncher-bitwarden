@@ -117,14 +117,6 @@ class KeepassxcExtension(Extension):
     def set_active_entry(self, keyword, entry):
         self.active_entry = (keyword, entry)
 
-    def check_and_reset_active_entry(self, keyword, entry):
-        r = self.active_entry is not None and self.active_entry[1]["name"] == entry
-        self.active_entry = None
-        return r
-
-    def reset_active_entry(self):
-        self.active_entry = None
-
 
 class KeywordQueryEventListener(EventListener):
     """ KeywordQueryEventListener class used to manage user input """
@@ -180,11 +172,43 @@ class KeywordQueryEventListener(EventListener):
         if not query_arg:
             return RenderResultListAction([ENTER_QUERY_ITEM])
         else:
-            if extension.check_and_reset_active_entry(query_keyword, query_arg):
-                return self.show_active_entry(query_arg)
-            else:
-                entries = self.keepassxc_db.search(query_arg)
-                return self.render_search_results(query_keyword, entries, extension)
+            entries = self.keepassxc_db.search(query_arg)
+            return self.render_search_results(query_keyword, entries, extension)
+
+
+class ItemEnterEventListener(EventListener):
+    """ KeywordQueryEventListener class used to manage user input """
+
+    def __init__(self, keepassxc_db):
+        self.keepassxc_db = keepassxc_db
+
+    def on_event(self, event, extension):
+        try:
+            data = event.get_data()
+            action = data.get("action", None)
+            if action == "read_passphrase":
+                return self.read_verify_passphrase(extension)
+            elif action == "activate_entry":
+                keyword = data.get("keyword", None)
+                entry = data.get("entry", None)
+                extension.set_active_entry(keyword, entry)
+                return self.show_active_entry(entry["id"])
+            elif action == "show_notification":
+                Notify.Notification.new(data.get("summary")).show()
+        except KeepassxcCliNotFoundError:
+            return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
+        except KeepassxcFileNotFoundError:
+            return RenderResultListAction([KEEPASSXC_DB_NOT_FOUND_ITEM])
+        except KeepassxcCliError as e:
+            return RenderResultListAction([keepassxc_cli_error_item(e.message)])
+
+    def read_verify_passphrase(self, extension):
+        win = GtkPassphraseEntryWindow(
+            verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
+        )
+        win.read_passphrase()
+        if not self.keepassxc_db.need_login():
+            Notify.Notification.new("KeePassXC database unlocked.").show()
 
     def show_active_entry(self, entry):
         items = []
@@ -231,41 +255,6 @@ class KeywordQueryEventListener(EventListener):
                         )
                     )
         return RenderResultListAction(items)
-
-
-class ItemEnterEventListener(EventListener):
-    """ KeywordQueryEventListener class used to manage user input """
-
-    def __init__(self, keepassxc_db):
-        self.keepassxc_db = keepassxc_db
-
-    def on_event(self, event, extension):
-        try:
-            data = event.get_data()
-            action = data.get("action", None)
-            if action == "read_passphrase":
-                return self.read_verify_passphrase(extension)
-            elif action == "activate_entry":
-                keyword = data.get("keyword", None)
-                entry = data.get("entry", None)
-                extension.set_active_entry(keyword, entry)
-                return SetUserQueryAction("{} {}".format(keyword, entry["name"]))
-            elif action == "show_notification":
-                Notify.Notification.new(data.get("summary")).show()
-        except KeepassxcCliNotFoundError:
-            return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
-        except KeepassxcFileNotFoundError:
-            return RenderResultListAction([KEEPASSXC_DB_NOT_FOUND_ITEM])
-        except KeepassxcCliError as e:
-            return RenderResultListAction([keepassxc_cli_error_item(e.message)])
-
-    def read_verify_passphrase(self, extension):
-        win = GtkPassphraseEntryWindow(
-            verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
-        )
-        win.read_passphrase()
-        if not self.keepassxc_db.need_login():
-            Notify.Notification.new("KeePassXC database unlocked.").show()
 
 
 class PreferencesUpdateEventListener(EventListener):
