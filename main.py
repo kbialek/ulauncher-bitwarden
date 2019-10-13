@@ -108,6 +108,9 @@ class KeepassxcExtension(Extension):
     def get_email(self):
         return self.preferences["email"]
 
+    def get_mfa_enabled(self):
+        return self.preferences["mfa"] == 'yes'
+
     def get_max_result_items(self):
         return int(self.preferences["max-results"])
 
@@ -129,6 +132,7 @@ class KeywordQueryEventListener(EventListener):
             self.keepassxc_db.initialize(
                 extension.get_server_url(),
                 extension.get_email(),
+                extension.get_mfa_enabled(),
                 extension.get_inactivity_lock_timeout()
             )
 
@@ -205,6 +209,7 @@ class ItemEnterEventListener(EventListener):
     def read_verify_passphrase(self, extension):
         win = GtkPassphraseEntryWindow(
             login_mode=self.keepassxc_db.need_login(),
+            mfa_enabled=self.keepassxc_db.need_mfa(),
             verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
         )
         win.read_passphrase()

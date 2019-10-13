@@ -5,7 +5,7 @@ from gi.repository import Gtk, GLib
 
 
 class GtkPassphraseEntryWindow(Gtk.Window):
-    def __init__(self, login_mode, verify_passphrase_fn=None):
+    def __init__(self, login_mode, mfa_enabled, verify_passphrase_fn=None):
         Gtk.Window.__init__(self, title="Bitwarden Login" if login_mode else "Bitwarden Unlock")
 
         self.verify_passphrase_fn = verify_passphrase_fn
@@ -36,9 +36,9 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         self.mfa_entry.props.max_width_chars = 6
         self.mfa_entry.connect("activate", self.enter_pressed)
         self.mfa_entry.connect("key-press-event", self.key_pressed)
-        # if login_mode:
-        vbox.pack_start(self.mfa_label, True, True, 0)
-        vbox.pack_start(self.mfa_entry, True, True, 0)
+        if login_mode and mfa_enabled:
+            vbox.pack_start(self.mfa_label, True, True, 0)
+            vbox.pack_start(self.mfa_entry, True, True, 0)
 
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(False)

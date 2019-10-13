@@ -28,6 +28,13 @@
       "default_value": ""
     },
     {
+      "id": "mfa",
+      "type": "select",
+      "options": ["yes", "no"],
+      "name": "Enable MFA login",
+      "default_value": "yes"
+    },
+    {
       "id": "max-results",
       "type": "input",
       "name": "Maximum number of search results to display",

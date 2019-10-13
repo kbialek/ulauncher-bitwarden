@@ -31,11 +31,12 @@ class KeepassxcDatabase:
         self.email = None
         self.session = None
         self.folders = None
+        self.mfa_enabled = None
         self.passphrase = None
         self.passphrase_expires_at = None
         self.inactivity_lock_timeout = 0
 
-    def initialize(self, server, email, inactivity_lock_timeout):
+    def initialize(self, server, email, mfa_enabled, inactivity_lock_timeout):
         """
         Check that
         - we can call the CLI
@@ -43,6 +44,7 @@ class KeepassxcDatabase:
         """
         self.server = server
         self.email = email
+        self.mfa_enabled = mfa_enabled
         self.inactivity_lock_timeout = inactivity_lock_timeout
         if not self.cli_checked:
             if self.can_execute_cli():
@@ -79,17 +81,20 @@ class KeepassxcDatabase:
     def need_login(self):
         (err, out) = self.run_cli("login", "--check", "--response")
         if err:
-            raise KeepassxcCliError(err)
+            try:
+                resp = json.loads(err)
+                result = resp["success"] is False
+                if result and self.inactivity_lock_timeout:
+                    if datetime.now() > self.passphrase_expires_at:
+                        self.session = None
+                return result
+            except JSONDecodeError:
+                raise KeepassxcCliError(err)
         else:
-            resp = json.loads(out)
-            if resp["success"] is False:
-                return True
-            elif self.inactivity_lock_timeout:
-                if datetime.now() > self.passphrase_expires_at:
-                    self.session = None
-                    return True
-            else:
-                return False
+            return False
+
+    def need_mfa(self):
+        return self.mfa_enabled
 
     def need_unlock(self):
         if self.session is None:
@@ -113,7 +118,7 @@ class KeepassxcDatabase:
 
     def login(self, pp, mfa):
         args = ["login", self.email, pp, "--raw"]
-        if mfa:
+        if self.mfa_enabled and mfa:
             args.append("--code")
             args.append(mfa)
         (err, out) = self.run_cli(*args)
