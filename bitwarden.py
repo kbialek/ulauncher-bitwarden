@@ -32,7 +32,6 @@ class KeepassxcDatabase:
         self.session = None
         self.folders = None
         self.mfa_enabled = None
-        self.passphrase = None
         self.passphrase_expires_at = None
         self.inactivity_lock_timeout = 0
 
@@ -58,7 +57,6 @@ class KeepassxcDatabase:
         """
         self.logout()
         self.server = new_server_url
-        self.passphrase = None
         self.passphrase_expires_at = None
 
     def change_email(self, new_email):
@@ -67,7 +65,6 @@ class KeepassxcDatabase:
         """
         self.logout()
         self.email = new_email
-        self.passphrase = None
         self.passphrase_expires_at = None
 
     def change_inactivity_lock_timeout(self, secs):
@@ -75,7 +72,6 @@ class KeepassxcDatabase:
         Change the inactivity lock timeout and immediately lock the database.
         """
         self.inactivity_lock_timeout = secs
-        self.passphrase = None
         self.passphrase_expires_at = None
 
     def need_login(self):
