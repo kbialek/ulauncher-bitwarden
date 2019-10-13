@@ -106,24 +106,27 @@ class KeepassxcDatabase:
             return False
 
     def verify_and_set_passphrase(self, pp, mfa):
-        if self.unlock(pp) or self.login(pp, mfa):
+        success = False
+        if self.need_login():
+            success = self.login(pp, mfa)
+        elif self.need_unlock():
+            success = self.unlock(pp)
+        if success:
             self.list_folders()
-            return True
-        else:
-            return False
+        return success
 
     def login(self, pp, mfa):
-        args = ["login", self.email, pp, "--raw"]
+        args = ["login", self.email, "--raw"]
         if self.mfa_enabled and mfa:
             args.append("--code")
             args.append(mfa)
-        (err, out) = self.run_cli(*args)
-        if err:
-            self.session = None
-            return False
-        else:
+        (err, out) = self.run_cli_pp(pp, *args)
+        if out:
             self.session = out
             return True
+        else:
+            self.session = None
+            return False
 
     def logout(self):
         self.session = None
@@ -132,13 +135,13 @@ class KeepassxcDatabase:
             raise KeepassxcCliError(err)
 
     def unlock(self, pp):
-        (err, out) = self.run_cli("unlock", pp, "--raw")
-        if err:
-            self.session = None
-            return False
-        else:
+        (err, out) = self.run_cli_pp(pp, "unlock", "--raw")
+        if out:
             self.session = out
             return True
+        else:
+            self.session = None
+            return False
 
     def list_folders(self):
         (err, out) = self.run_cli("list", "folders", "--session", self.session)
@@ -190,12 +193,15 @@ class KeepassxcDatabase:
             return False
 
     def run_cli(self, *args):
+        return self.run_cli_pp(None, *args)
+
+    def run_cli_pp(self, passphrase, *args):
         try:
             cp = subprocess.run(
                 [self.cli, *args],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                # input=bytes(self.passphrase, "utf-8"),
+                input=bytes(passphrase, "utf-8") if passphrase is not None else None,
             )
         except FileNotFoundError:
             raise KeepassxcCliNotFoundError()
