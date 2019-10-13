@@ -50,6 +50,7 @@ class KeepassxcDatabase:
                 self.cli_checked = True
             else:
                 raise KeepassxcCliNotFoundError()
+        self.configure_server()
 
     def change_server_url(self, new_server_url):
         """
@@ -58,6 +59,7 @@ class KeepassxcDatabase:
         self.logout()
         self.server = new_server_url
         self.passphrase_expires_at = None
+        self.configure_server()
 
     def change_email(self, new_email):
         """
@@ -73,6 +75,9 @@ class KeepassxcDatabase:
         """
         self.inactivity_lock_timeout = secs
         self.passphrase_expires_at = None
+
+    def configure_server(self):
+        self.run_cli("config", "server", self.server)
 
     def need_login(self):
         (err, out) = self.run_cli("login", "--check", "--response")
@@ -196,6 +201,7 @@ class KeepassxcDatabase:
         return self.run_cli_pp(None, *args)
 
     def run_cli_pp(self, passphrase, *args):
+        print(args)
         try:
             cp = subprocess.run(
                 [self.cli, *args],
