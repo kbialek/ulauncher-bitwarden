@@ -12,16 +12,13 @@ from ulauncher.api.shared.event import (
 from ulauncher.api.shared.item.ExtensionResultItem import ExtensionResultItem
 from ulauncher.api.shared.item.ExtensionSmallResultItem import ExtensionSmallResultItem
 from ulauncher.api.shared.action.RenderResultListAction import RenderResultListAction
-from ulauncher.api.shared.action.HideWindowAction import HideWindowAction
 from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
 from ulauncher.api.shared.action.ActionList import ActionList
-from ulauncher.api.shared.action.SetUserQueryAction import SetUserQueryAction
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
 from bitwarden import (
     KeepassxcDatabase,
     KeepassxcCliNotFoundError,
-    KeepassxcFileNotFoundError,
     KeepassxcCliError,
 )
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
@@ -36,22 +33,15 @@ NOT_FOUND_ICON = "images/not_found.svg"
 
 KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
     icon=ERROR_ICON,
-    name="Cannot find or execute keepassxc-cli",
-    description="Please make sure that keepassxc-cli is installed and accessible",
-    on_enter=DoNothingAction(),
-)
-
-KEEPASSXC_DB_NOT_FOUND_ITEM = ExtensionResultItem(
-    icon=ERROR_ICON,
-    name="Cannot find the database file",
-    description="Please verify the password database file path in extension preferences",
+    name="Cannot find or execute bw",
+    description="Please make sure that bitwarden-cli is installed and accessible",
     on_enter=DoNothingAction(),
 )
 
 NEED_PASSPHRASE_ITEM = ExtensionResultItem(
     icon=UNLOCK_ICON,
-    name="Login to Bitwarden",
-    description="Enter passphrase to login the Bitwarden server",
+    name="Unlock Bitwarden",
+    description="Enter passphrase to login/unlock Bitwarden vault",
     on_enter=ExtensionCustomAction({"action": "read_passphrase"}),
 )
 
@@ -142,8 +132,6 @@ class KeywordQueryEventListener(EventListener):
                 return self.process_keyword_query(event, extension)
         except KeepassxcCliNotFoundError:
             return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
-        except KeepassxcFileNotFoundError:
-            return RenderResultListAction([KEEPASSXC_DB_NOT_FOUND_ITEM])
         except KeepassxcCliError as e:
             return RenderResultListAction([keepassxc_cli_error_item(e.message)])
 
@@ -201,8 +189,6 @@ class ItemEnterEventListener(EventListener):
                 Notify.Notification.new(data.get("summary")).show()
         except KeepassxcCliNotFoundError:
             return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
-        except KeepassxcFileNotFoundError:
-            return RenderResultListAction([KEEPASSXC_DB_NOT_FOUND_ITEM])
         except KeepassxcCliError as e:
             return RenderResultListAction([keepassxc_cli_error_item(e.message)])
 
@@ -213,8 +199,8 @@ class ItemEnterEventListener(EventListener):
             verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
         )
         win.read_passphrase()
-        if not self.keepassxc_db.need_login():
-            Notify.Notification.new("KeePassXC database unlocked.").show()
+        if not self.keepassxc_db.need_unlock():
+            Notify.Notification.new("Bitwarden vault unlocked.").show()
 
     def show_active_entry(self, entry):
         items = []
