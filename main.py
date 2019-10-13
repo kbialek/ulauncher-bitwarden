@@ -136,7 +136,7 @@ class KeywordQueryEventListener(EventListener):
                 extension.get_inactivity_lock_timeout()
             )
 
-            if self.keepassxc_db.need_login() or self.keepassxc_db.need_unlock():
+            if self.keepassxc_db.need_unlock():
                 return RenderResultListAction([NEED_PASSPHRASE_ITEM])
             else:
                 return self.process_keyword_query(event, extension)

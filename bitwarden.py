@@ -194,7 +194,6 @@ class KeepassxcDatabase:
             return False
 
     def run_cli(self, *args):
-        print(args)
         try:
             cp = subprocess.run(
                 [self.cli, *args],
