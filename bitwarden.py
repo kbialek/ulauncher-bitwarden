@@ -110,8 +110,7 @@ class KeepassxcDatabase:
     def handle_unlock_result(err, out):
         if err:
             try:
-                resp = json.loads(err)
-                result = resp["success"] is False
+                result = err["success"] is False
                 return result
             except JSONDecodeError:
                 raise KeepassxcCliError(err)
@@ -167,7 +166,7 @@ class KeepassxcDatabase:
             return False
         else:
             self.folders = dict()
-            for item in json.loads(out)["data"]["data"]:
+            for item in out["data"]:
                 self.folders[item["id"]] = item["name"]
             return True
 
@@ -180,21 +179,19 @@ class KeepassxcDatabase:
 
         (err, out) = self.run_cli_session("list", "items", "--search", query)
         if err:
-            resp = json.loads(err)
-            if not resp["success"]:
-                raise BitwardenVaultLockedError(resp["message"])
+            if not err["success"]:
+                raise BitwardenVaultLockedError(err["message"])
             else:
                 raise KeepassxcCliError(err)
         else:
-            return json.loads(out)["data"]["data"]
+            return out["data"]
 
     def get_entry_details(self, entry):
         attrs = dict()
 
         (err, out) = self.run_cli_session("get", "item", entry)
         if out:
-            resp = json.loads(out)["data"]
-            login = resp["login"]
+            login = out["login"]
             attrs["username"] = login["username"]
             attrs["password"] = login["password"]
             if "uris" in login:
@@ -203,7 +200,7 @@ class KeepassxcDatabase:
 
             if "totp" in login and login["totp"]:
                 (err, out) = self.run_cli_session("get", "totp", entry)
-                attrs["totp"] = json.loads(out)["data"]["data"]
+                attrs["totp"] = out["data"]
         return attrs
 
     def can_execute_cli(self):
@@ -229,7 +226,10 @@ class KeepassxcDatabase:
                 seconds=self.inactivity_lock_timeout
             )
 
-        return cp.stderr.decode("utf-8"), cp.stdout.decode("utf-8")
+        err = cp.stderr.decode("utf-8")
+        out = cp.stdout.decode("utf-8")
+
+        return json.loads(err) if err else None, json.loads(out)["data"] if out else None
 
     def run_cli_pp(self, passphrase, *args):
         try:
