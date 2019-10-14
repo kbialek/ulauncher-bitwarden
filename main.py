@@ -92,6 +92,12 @@ class KeepassxcExtension(Extension):
         )
         self.active_entry = None
 
+    def get_search_keyword(self):
+        return self.preferences["search"]
+
+    def get_sync_keyword(self):
+        return self.preferences["sync"]
+
     def get_server_url(self):
         return self.preferences["server-url"]
 
@@ -163,11 +169,18 @@ class KeywordQueryEventListener(EventListener):
     def process_keyword_query(self, event, extension):
         query_keyword = event.get_keyword()
         query_arg = event.get_argument()
-        if not query_arg:
-            return RenderResultListAction([ENTER_QUERY_ITEM])
-        else:
-            entries = self.keepassxc_db.search(query_arg)
-            return self.render_search_results(query_keyword, entries, extension)
+
+        if query_keyword == extension.get_search_keyword():
+            if not query_arg:
+                return RenderResultListAction([ENTER_QUERY_ITEM])
+            else:
+                entries = self.keepassxc_db.search(query_arg)
+                return self.render_search_results(query_keyword, entries, extension)
+        elif query_keyword == extension.get_sync_keyword():
+            if self.keepassxc_db.sync():
+                Notify.Notification.new("Bitwarden vault synchronized.").show()
+            else:
+                Notify.Notification.new("Error", "Bitwarden vault synchronization error.").show()
 
 
 class ItemEnterEventListener(EventListener):

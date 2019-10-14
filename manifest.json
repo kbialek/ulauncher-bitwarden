@@ -16,6 +16,13 @@
       "default_value": "bw"
     },
     {
+      "id": "sync",
+      "type": "keyword",
+      "name": "Bitwarden synchronization",
+      "description": "Synchronizes Bitwarden database with the server",
+      "default_value": "bwsync"
+    },
+    {
       "id": "server-url",
       "type": "input",
       "name": "Bitwarden Server Url",
