@@ -81,18 +81,7 @@ class KeepassxcDatabase:
 
     def need_login(self):
         (err, out) = self.run_cli("login", "--check", "--response")
-        if err:
-            try:
-                resp = json.loads(err)
-                result = resp["success"] is False
-                if result and self.inactivity_lock_timeout:
-                    if datetime.now() > self.passphrase_expires_at:
-                        self.session = None
-                return result
-            except JSONDecodeError:
-                raise KeepassxcCliError(err)
-        else:
-            return False
+        return self.handle_unlock_result(err, out)
 
     def need_mfa(self):
         return self.mfa_enabled
@@ -101,10 +90,17 @@ class KeepassxcDatabase:
         if self.session is None:
             return True
         (err, out) = self.run_cli("unlock", "--check", "--response", "--session", self.session)
+        return self.handle_unlock_result(err, out)
+
+    def handle_unlock_result(self, err, out):
         if err:
             try:
                 resp = json.loads(err)
-                return resp["success"] is False
+                result = resp["success"] is False
+                if result and self.inactivity_lock_timeout:
+                    if datetime.now() > self.passphrase_expires_at:
+                        self.lock()
+                return result
             except JSONDecodeError:
                 raise KeepassxcCliError(err)
         else:
@@ -147,6 +143,10 @@ class KeepassxcDatabase:
         else:
             self.session = None
             return False
+
+    def lock(self):
+        self.run_cli("lock")
+        self.session = None
 
     def list_folders(self):
         (err, out) = self.run_cli("list", "folders", "--session", self.session)
