@@ -179,10 +179,7 @@ class KeepassxcDatabase:
 
         (err, out) = self.run_cli_session("list", "items", "--search", query)
         if err:
-            if not err["success"]:
-                raise BitwardenVaultLockedError(err["message"])
-            else:
-                raise KeepassxcCliError(err)
+            raise KeepassxcCliError(err)
         else:
             return out["data"]
 
@@ -229,7 +226,13 @@ class KeepassxcDatabase:
         err = cp.stderr.decode("utf-8")
         out = cp.stdout.decode("utf-8")
 
-        return json.loads(err) if err else None, json.loads(out)["data"] if out else None
+        err_json = None
+        if err:
+            err_json = json.loads(err)
+            if not err_json["success"] and err_json["message"] == "Vault is locked.":
+                raise BitwardenVaultLockedError(err_json["message"])
+
+        return err_json, json.loads(out)["data"] if out else None
 
     def run_cli_pp(self, passphrase, *args):
         try:
