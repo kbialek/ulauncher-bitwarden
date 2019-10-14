@@ -91,7 +91,7 @@ class KeepassxcDatabase:
         self.run_cli_session("config", "server", self.server)
 
     def need_login(self):
-        (err, out) = self.run_cli_session("login", "--check", "--response")
+        (err, out) = self.run_cli_session("login", "--check")
         return self.handle_unlock_result(err, out)
 
     def need_mfa(self):
@@ -100,7 +100,7 @@ class KeepassxcDatabase:
     def need_unlock(self):
         if not self.has_session():
             return True
-        (err, out) = self.run_cli_session("unlock", "--check", "--response")
+        (err, out) = self.run_cli_session("unlock", "--check")
         return self.handle_unlock_result(err, out)
 
     def has_session(self):
@@ -167,7 +167,7 @@ class KeepassxcDatabase:
             return False
         else:
             self.folders = dict()
-            for item in json.loads(out):
+            for item in json.loads(out)["data"]["data"]:
                 self.folders[item["id"]] = item["name"]
             return True
 
@@ -178,7 +178,7 @@ class KeepassxcDatabase:
         if len(query) < 2:
             return []
 
-        (err, out) = self.run_cli_session("list", "items", "--search", query, "--response")
+        (err, out) = self.run_cli_session("list", "items", "--search", query)
         if err:
             resp = json.loads(err)
             if not resp["success"]:
@@ -193,7 +193,7 @@ class KeepassxcDatabase:
 
         (err, out) = self.run_cli_session("get", "item", entry)
         if out:
-            resp = json.loads(out)
+            resp = json.loads(out)["data"]
             login = resp["login"]
             attrs["username"] = login["username"]
             attrs["password"] = login["password"]
@@ -201,8 +201,9 @@ class KeepassxcDatabase:
                 uris = login["uris"]
                 attrs["uri"] = uris[0]["uri"] if uris else ""
 
-            (err, out) = self.run_cli_session("get", "totp", entry)
-            attrs["totp"] = out
+            if "totp" in login and login["totp"]:
+                (err, out) = self.run_cli_session("get", "totp", entry)
+                attrs["totp"] = json.loads(out)["data"]["data"]
         return attrs
 
     def can_execute_cli(self):
@@ -216,7 +217,7 @@ class KeepassxcDatabase:
         session_args = ["--session", self.session] if self.session else []
         try:
             cp = subprocess.run(
-                [self.cli, *args, *session_args],
+                [self.cli, *args, "--response", *session_args],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
