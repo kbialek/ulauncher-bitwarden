@@ -190,18 +190,19 @@ class KeepassxcDatabase:
 
     def get_entry_details(self, entry):
         attrs = dict()
-        for attr in ["username", "password", "totp", "uri"]:
-            (err, out) = self.run_cli_session(
-                "get", attr, entry, "--response"
-            )
-            if err:
-                try:
-                    json.loads(err)
-                except JSONDecodeError:
-                    raise KeepassxcCliError(err)
-            else:
-                resp = json.loads(out)
-                attrs[attr] = resp["data"]["data"]
+
+        (err, out) = self.run_cli_session("get", "item", entry)
+        if out:
+            resp = json.loads(out)
+            login = resp["login"]
+            attrs["username"] = login["username"]
+            attrs["password"] = login["password"]
+            if "uris" in login:
+                uris = login["uris"]
+                attrs["uri"] = uris[0]["uri"] if uris else ""
+
+            (err, out) = self.run_cli_session("get", "totp", entry)
+            attrs["totp"] = out
         return attrs
 
     def can_execute_cli(self):
