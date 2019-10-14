@@ -59,7 +59,7 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliNotFoundError()
 
-        if self.inactivity_lock_timeout:
+        if self.inactivity_lock_timeout and self.passphrase_expires_at is not None:
             if datetime.now() > self.passphrase_expires_at:
                 self.lock()
 
