@@ -24,7 +24,7 @@ class KeepassxcDatabase:
 
     def __init__(self):
         self.cli = "bw"
-        self.cli_checked = False
+        self.init_done = False
         self.path = None
         self.path_checked = False
         self.server = None
@@ -45,12 +45,12 @@ class KeepassxcDatabase:
         self.email = email
         self.mfa_enabled = mfa_enabled
         self.inactivity_lock_timeout = inactivity_lock_timeout
-        if not self.cli_checked:
+        if not self.init_done:
+            self.configure_server()
             if self.can_execute_cli():
-                self.cli_checked = True
+                self.init_done = True
             else:
                 raise KeepassxcCliNotFoundError()
-        self.configure_server()
 
     def change_server_url(self, new_server_url):
         """
