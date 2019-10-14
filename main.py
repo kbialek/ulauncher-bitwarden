@@ -126,7 +126,10 @@ class KeywordQueryEventListener(EventListener):
                 extension.get_inactivity_lock_timeout()
             )
 
-            return self.process_keyword_query(event, extension)
+            if not self.keepassxc_db.has_session():
+                return RenderResultListAction([NEED_PASSPHRASE_ITEM])
+            else:
+                return self.process_keyword_query(event, extension)
         except BitwardenVaultLockedError:
             return RenderResultListAction([NEED_PASSPHRASE_ITEM])
         except KeepassxcCliNotFoundError:

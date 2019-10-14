@@ -59,6 +59,10 @@ class KeepassxcDatabase:
             else:
                 raise KeepassxcCliNotFoundError()
 
+        if self.inactivity_lock_timeout:
+            if datetime.now() > self.passphrase_expires_at:
+                self.lock()
+
     def change_server_url(self, new_server_url):
         """
         Change the path to the database file and lock the database.
@@ -94,19 +98,20 @@ class KeepassxcDatabase:
         return self.mfa_enabled
 
     def need_unlock(self):
-        if self.session is None:
+        if not self.has_session():
             return True
         (err, out) = self.run_cli_session("unlock", "--check", "--response")
         return self.handle_unlock_result(err, out)
 
-    def handle_unlock_result(self, err, out):
+    def has_session(self):
+        return self.session is not None
+
+    @staticmethod
+    def handle_unlock_result(err, out):
         if err:
             try:
                 resp = json.loads(err)
                 result = resp["success"] is False
-                if result and self.inactivity_lock_timeout:
-                    if datetime.now() > self.passphrase_expires_at:
-                        self.lock()
                 return result
             except JSONDecodeError:
                 raise KeepassxcCliError(err)
@@ -152,8 +157,8 @@ class KeepassxcDatabase:
             return False
 
     def lock(self):
-        self.run_cli_session("lock")
         self.session = None
+        self.run_cli_session("lock")
 
     def list_folders(self):
         (err, out) = self.run_cli_session("list", "folders")
@@ -172,6 +177,7 @@ class KeepassxcDatabase:
     def search(self, query):
         if len(query) < 2:
             return []
+
         (err, out) = self.run_cli_session("list", "items", "--search", query, "--response")
         if err:
             resp = json.loads(err)
