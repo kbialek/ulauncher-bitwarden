@@ -12,15 +12,22 @@
       "id": "search",
       "type": "keyword",
       "name": "Bitwarden database search",
-      "description": "Search Bitwarden database and copy passwords and other attributes to the clipboard",
+      "description": "Search Bitwarden vault and copy passwords and other attributes to the clipboard",
       "default_value": "bw"
     },
     {
       "id": "sync",
       "type": "keyword",
       "name": "Bitwarden synchronization",
-      "description": "Synchronizes Bitwarden database with the server",
+      "description": "Synchronizes Bitwarden vault with the server",
       "default_value": "bwsync"
+    },
+    {
+      "id": "lock",
+      "type": "keyword",
+      "name": "Bitwarden lock",
+      "description": "Locks Bitwarden vault",
+      "default_value": "bwlock"
     },
     {
       "id": "server-url",

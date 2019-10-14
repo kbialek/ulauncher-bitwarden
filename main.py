@@ -98,6 +98,9 @@ class KeepassxcExtension(Extension):
     def get_sync_keyword(self):
         return self.preferences["sync"]
 
+    def get_lock_keyword(self):
+        return self.preferences["lock"]
+
     def get_server_url(self):
         return self.preferences["server-url"]
 
@@ -181,6 +184,11 @@ class KeywordQueryEventListener(EventListener):
                 Notify.Notification.new("Bitwarden vault synchronized.").show()
             else:
                 Notify.Notification.new("Error", "Bitwarden vault synchronization error.").show()
+        elif query_keyword == extension.get_lock_keyword():
+            if self.keepassxc_db.lock():
+                Notify.Notification.new("Bitwarden vault locked.").show()
+            else:
+                Notify.Notification.new("Error", "Bitwarden vault locking error.").show()
 
 
 class ItemEnterEventListener(EventListener):

@@ -157,7 +157,11 @@ class KeepassxcDatabase:
 
     def lock(self):
         self.session = None
-        self.run_cli_session("lock")
+        (err, out) = self.run_cli_session("lock")
+        if err:
+            raise KeepassxcCliError(err)
+        else:
+            return True
 
     def sync(self):
         (err, out) = self.run_cli_session("sync")
