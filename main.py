@@ -20,7 +20,7 @@ from bitwarden import (
     KeepassxcDatabase,
     KeepassxcCliNotFoundError,
     KeepassxcCliError,
-)
+    BitwardenVaultLockedError)
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
 
 SEARCH_ICON = "images/keepassxc-search.svg"
@@ -126,10 +126,9 @@ class KeywordQueryEventListener(EventListener):
                 extension.get_inactivity_lock_timeout()
             )
 
-            if self.keepassxc_db.need_unlock():
-                return RenderResultListAction([NEED_PASSPHRASE_ITEM])
-            else:
-                return self.process_keyword_query(event, extension)
+            return self.process_keyword_query(event, extension)
+        except BitwardenVaultLockedError:
+            return RenderResultListAction([NEED_PASSPHRASE_ITEM])
         except KeepassxcCliNotFoundError:
             return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
         except KeepassxcCliError as e:

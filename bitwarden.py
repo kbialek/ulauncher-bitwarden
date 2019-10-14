@@ -19,6 +19,13 @@ class KeepassxcCliError(Exception):
     def __init__(self, message):
         self.message = message
 
+
+class BitwardenVaultLockedError(KeepassxcCliError):
+
+    def __init__(self, message):
+        self.message = message
+
+
 class KeepassxcDatabase:
     """ Wrapper around keepassxc-cli """
 
@@ -77,10 +84,10 @@ class KeepassxcDatabase:
         self.passphrase_expires_at = None
 
     def configure_server(self):
-        self.run_cli("config", "server", self.server)
+        self.run_cli_session("config", "server", self.server)
 
     def need_login(self):
-        (err, out) = self.run_cli("login", "--check", "--response")
+        (err, out) = self.run_cli_session("login", "--check", "--response")
         return self.handle_unlock_result(err, out)
 
     def need_mfa(self):
@@ -89,7 +96,7 @@ class KeepassxcDatabase:
     def need_unlock(self):
         if self.session is None:
             return True
-        (err, out) = self.run_cli("unlock", "--check", "--response", "--session", self.session)
+        (err, out) = self.run_cli_session("unlock", "--check", "--response")
         return self.handle_unlock_result(err, out)
 
     def handle_unlock_result(self, err, out):
@@ -131,7 +138,7 @@ class KeepassxcDatabase:
 
     def logout(self):
         self.session = None
-        (err, out) = self.run_cli("logout")
+        (err, out) = self.run_cli_session("logout")
         if err:
             raise KeepassxcCliError(err)
 
@@ -145,11 +152,11 @@ class KeepassxcDatabase:
             return False
 
     def lock(self):
-        self.run_cli("lock")
+        self.run_cli_session("lock")
         self.session = None
 
     def list_folders(self):
-        (err, out) = self.run_cli("list", "folders", "--session", self.session)
+        (err, out) = self.run_cli_session("list", "folders")
         if err:
             self.folders = None
             return False
@@ -165,20 +172,21 @@ class KeepassxcDatabase:
     def search(self, query):
         if len(query) < 2:
             return []
-        (err, out) = self.run_cli("list", "items", "--search", query, "--session", self.session)
+        (err, out) = self.run_cli_session("list", "items", "--search", query, "--response")
         if err:
-            if "No results for that" in err:
-                return []
+            resp = json.loads(err)
+            if not resp["success"]:
+                raise BitwardenVaultLockedError(resp["message"])
             else:
                 raise KeepassxcCliError(err)
         else:
-            return json.loads(out)
+            return json.loads(out)["data"]["data"]
 
     def get_entry_details(self, entry):
         attrs = dict()
         for attr in ["username", "password", "totp", "uri"]:
-            (err, out) = self.run_cli(
-                "get", attr, entry, "--session", self.session, "--response"
+            (err, out) = self.run_cli_session(
+                "get", attr, entry, "--response"
             )
             if err:
                 try:
@@ -197,17 +205,31 @@ class KeepassxcDatabase:
         except FileNotFoundError:
             return False
 
-    def run_cli(self, *args):
-        return self.run_cli_pp(None, *args)
+    def run_cli_session(self, *args):
+        session_args = ["--session", self.session] if self.session else []
+        try:
+            cp = subprocess.run(
+                [self.cli, *args, *session_args],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            raise KeepassxcCliNotFoundError()
+
+        if self.inactivity_lock_timeout:
+            self.passphrase_expires_at = datetime.now() + timedelta(
+                seconds=self.inactivity_lock_timeout
+            )
+
+        return cp.stderr.decode("utf-8"), cp.stdout.decode("utf-8")
 
     def run_cli_pp(self, passphrase, *args):
-        print(args)
         try:
             cp = subprocess.run(
                 [self.cli, *args],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
-                input=bytes(passphrase, "utf-8") if passphrase is not None else None,
+                input=bytes(passphrase, "utf-8"),
             )
         except FileNotFoundError:
             raise KeepassxcCliNotFoundError()
