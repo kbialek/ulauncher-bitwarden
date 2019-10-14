@@ -187,7 +187,9 @@ class KeepassxcDatabase:
         attrs = dict()
 
         (err, out) = self.run_cli_session("get", "item", entry)
-        if out:
+        if err:
+            raise KeepassxcCliError(err)
+        else:
             login = out["login"]
             attrs["username"] = login["username"]
             attrs["password"] = login["password"]
