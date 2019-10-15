@@ -178,7 +178,10 @@ class BitwardenClient:
             return True
 
     def get_folder(self, folder_id):
-        return self.folders[folder_id]
+        if folder_id in self.folders:
+            return self.folders[folder_id]
+        else:
+            return ""
 
     def search(self, query):
         if len(query) < 2:
