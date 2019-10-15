@@ -46,7 +46,7 @@
       "type": "select",
       "options": ["yes", "no"],
       "name": "Enable MFA login",
-      "default_value": "yes"
+      "default_value": "no"
     },
     {
       "id": "max-results",
