@@ -17,9 +17,9 @@ from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAct
 from ulauncher.api.shared.action.ActionList import ActionList
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
 from bitwarden import (
-    KeepassxcDatabase,
-    KeepassxcCliNotFoundError,
-    KeepassxcCliError,
+    BitwardenClient,
+    BitwardenCliNotFoundError,
+    BitwardenCliError,
     BitwardenVaultLockedError)
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
 
@@ -31,7 +31,7 @@ ITEM_ICON = "images/key.svg"
 COPY_ICON = "images/copy.svg"
 NOT_FOUND_ICON = "images/not_found.svg"
 
-KEEPASSXC_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
+BITWARDEN_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
     icon=ERROR_ICON,
     name="Cannot find or execute bw",
     description="Please make sure that bitwarden-cli is installed and accessible",
@@ -70,25 +70,25 @@ def more_results_available_item(cnt):
     )
 
 
-def keepassxc_cli_error_item(message):
+def bitwarden_cli_error_item(message):
     return ExtensionResultItem(
         icon=ERROR_ICON,
-        name="Error while calling keepassxc CLI",
+        name="Error while calling Bitwarden CLI",
         description=message,
         on_enter=DoNothingAction(),
     )
 
 
-class KeepassxcExtension(Extension):
+class BitwardenExtension(Extension):
     """ Extension class, coordinates everything """
 
     def __init__(self):
-        super(KeepassxcExtension, self).__init__()
-        self.keepassxc_db = KeepassxcDatabase()
-        self.subscribe(KeywordQueryEvent, KeywordQueryEventListener(self.keepassxc_db))
-        self.subscribe(ItemEnterEvent, ItemEnterEventListener(self.keepassxc_db))
+        super(BitwardenExtension, self).__init__()
+        self.bitwarden = BitwardenClient()
+        self.subscribe(KeywordQueryEvent, KeywordQueryEventListener(self.bitwarden))
+        self.subscribe(ItemEnterEvent, ItemEnterEventListener(self.bitwarden))
         self.subscribe(
-            PreferencesUpdateEvent, PreferencesUpdateEventListener(self.keepassxc_db)
+            PreferencesUpdateEvent, PreferencesUpdateEventListener(self.bitwarden)
         )
         self.active_entry = None
 
@@ -123,28 +123,28 @@ class KeepassxcExtension(Extension):
 class KeywordQueryEventListener(EventListener):
     """ KeywordQueryEventListener class used to manage user input """
 
-    def __init__(self, keepassxc_db):
-        self.keepassxc_db = keepassxc_db
+    def __init__(self, bitwarden):
+        self.bitwarden = bitwarden
 
     def on_event(self, event, extension):
         try:
-            self.keepassxc_db.initialize(
+            self.bitwarden.initialize(
                 extension.get_server_url(),
                 extension.get_email(),
                 extension.get_mfa_enabled(),
                 extension.get_inactivity_lock_timeout()
             )
 
-            if not self.keepassxc_db.has_session():
+            if not self.bitwarden.has_session():
                 return RenderResultListAction([NEED_PASSPHRASE_ITEM])
             else:
                 return self.process_keyword_query(event, extension)
         except BitwardenVaultLockedError:
             return RenderResultListAction([NEED_PASSPHRASE_ITEM])
-        except KeepassxcCliNotFoundError:
-            return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
-        except KeepassxcCliError as e:
-            return RenderResultListAction([keepassxc_cli_error_item(e.message)])
+        except BitwardenCliNotFoundError:
+            return RenderResultListAction([BITWARDEN_CLI_NOT_FOUND_ITEM])
+        except BitwardenCliError as e:
+            return RenderResultListAction([bitwarden_cli_error_item(e.message)])
 
     def render_search_results(self, keyword, entries, extension):
         max_items = extension.get_max_result_items()
@@ -161,7 +161,7 @@ class KeywordQueryEventListener(EventListener):
                     ExtensionResultItem(
                         icon=ITEM_ICON,
                         name=e["name"],
-                        description=self.keepassxc_db.get_folder(e["folderId"]),
+                        description=self.bitwarden.get_folder(e["folderId"]),
                         on_enter=action,
                     )
                 )
@@ -177,15 +177,15 @@ class KeywordQueryEventListener(EventListener):
             if not query_arg:
                 return RenderResultListAction([ENTER_QUERY_ITEM])
             else:
-                entries = self.keepassxc_db.search(query_arg)
+                entries = self.bitwarden.search(query_arg)
                 return self.render_search_results(query_keyword, entries, extension)
         elif query_keyword == extension.get_sync_keyword():
-            if self.keepassxc_db.sync():
+            if self.bitwarden.sync():
                 Notify.Notification.new("Bitwarden vault synchronized.").show()
             else:
                 Notify.Notification.new("Error", "Bitwarden vault synchronization error.").show()
         elif query_keyword == extension.get_lock_keyword():
-            if self.keepassxc_db.lock():
+            if self.bitwarden.lock():
                 Notify.Notification.new("Bitwarden vault locked.").show()
             else:
                 Notify.Notification.new("Error", "Bitwarden vault locking error.").show()
@@ -194,8 +194,8 @@ class KeywordQueryEventListener(EventListener):
 class ItemEnterEventListener(EventListener):
     """ KeywordQueryEventListener class used to manage user input """
 
-    def __init__(self, keepassxc_db):
-        self.keepassxc_db = keepassxc_db
+    def __init__(self, bitwarden):
+        self.bitwarden = bitwarden
 
     def on_event(self, event, extension):
         try:
@@ -210,24 +210,24 @@ class ItemEnterEventListener(EventListener):
                 return self.show_active_entry(entry["id"])
             elif action == "show_notification":
                 Notify.Notification.new(data.get("summary")).show()
-        except KeepassxcCliNotFoundError:
-            return RenderResultListAction([KEEPASSXC_CLI_NOT_FOUND_ITEM])
-        except KeepassxcCliError as e:
-            return RenderResultListAction([keepassxc_cli_error_item(e.message)])
+        except BitwardenCliNotFoundError:
+            return RenderResultListAction([BITWARDEN_CLI_NOT_FOUND_ITEM])
+        except BitwardenCliError as e:
+            return RenderResultListAction([bitwarden_cli_error_item(e.message)])
 
     def read_verify_passphrase(self, extension):
         win = GtkPassphraseEntryWindow(
-            login_mode=self.keepassxc_db.need_login(),
-            mfa_enabled=self.keepassxc_db.need_mfa(),
-            verify_passphrase_fn=self.keepassxc_db.verify_and_set_passphrase
+            login_mode=self.bitwarden.need_login(),
+            mfa_enabled=self.bitwarden.need_mfa(),
+            verify_passphrase_fn=self.bitwarden.verify_and_set_passphrase
         )
         win.read_passphrase()
-        if not self.keepassxc_db.need_unlock():
+        if not self.bitwarden.need_unlock():
             Notify.Notification.new("Bitwarden vault unlocked.").show()
 
     def show_active_entry(self, entry):
         items = []
-        details = self.keepassxc_db.get_entry_details(entry)
+        details = self.bitwarden.get_entry_details(entry)
         attrs = [
             ("password", "password"),
             ("username", "username"),
@@ -275,20 +275,20 @@ class ItemEnterEventListener(EventListener):
 class PreferencesUpdateEventListener(EventListener):
     """ Handle preferences updates """
 
-    def __init__(self, keepassxc_db):
-        self.keepassxc_db = keepassxc_db
+    def __init__(self, bitwarden):
+        self.bitwarden = bitwarden
 
     def on_event(self, event, extension):
         if event.new_value != event.old_value:
             if event.id == "server-url":
-                self.keepassxc_db.change_server_url(event.new_value)
+                self.bitwarden.change_server_url(event.new_value)
             elif event.id == "email":
-                self.keepassxc_db.change_email(event.new_value)
+                self.bitwarden.change_email(event.new_value)
             elif event.id == "inactivity-lock-timeout":
-                self.keepassxc_db.change_inactivity_lock_timeout(int(event.new_value))
+                self.bitwarden.change_inactivity_lock_timeout(int(event.new_value))
 
 
 if __name__ == "__main__":
-    Notify.init("ulauncher-keepassxc")
-    KeepassxcExtension().run()
+    Notify.init("ulauncher-bitwarden")
+    BitwardenExtension().run()
     Notify.uninit()

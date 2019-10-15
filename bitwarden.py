@@ -5,29 +5,25 @@ import json
 from json import JSONDecodeError
 
 
-class KeepassxcCliNotFoundError(Exception):
+class BitwardenCliNotFoundError(Exception):
     pass
 
 
-class KeepassxcFileNotFoundError(Exception):
-    pass
-
-
-class KeepassxcCliError(Exception):
-    """ Contains error message returned by keepassxc-cli """
+class BitwardenCliError(Exception):
+    """ Contains error message returned by bitwarden-cli """
 
     def __init__(self, message):
         self.message = message
 
 
-class BitwardenVaultLockedError(KeepassxcCliError):
+class BitwardenVaultLockedError(BitwardenCliError):
 
     def __init__(self, message):
         self.message = message
 
 
-class KeepassxcDatabase:
-    """ Wrapper around keepassxc-cli """
+class BitwardenClient:
+    """ Wrapper around bitwarden-cli """
 
     def __init__(self):
         self.cli = "bw"
@@ -57,7 +53,7 @@ class KeepassxcDatabase:
             if self.can_execute_cli():
                 self.init_done = True
             else:
-                raise KeepassxcCliNotFoundError()
+                raise BitwardenCliNotFoundError()
 
         if self.inactivity_lock_timeout and self.passphrase_expires_at is not None:
             if datetime.now() > self.passphrase_expires_at:
@@ -113,7 +109,7 @@ class KeepassxcDatabase:
                 result = err["success"] is False
                 return result
             except JSONDecodeError:
-                raise KeepassxcCliError(err)
+                raise BitwardenCliError(err)
         else:
             return False
 
@@ -144,7 +140,7 @@ class KeepassxcDatabase:
         self.session = None
         (err, out) = self.run_cli_session("logout")
         if err:
-            raise KeepassxcCliError(err)
+            raise BitwardenCliError(err)
 
     def unlock(self, pp):
         (err, out) = self.run_cli_pp(pp, "unlock", "--raw")
@@ -159,14 +155,14 @@ class KeepassxcDatabase:
         self.session = None
         (err, out) = self.run_cli_session("lock")
         if err:
-            raise KeepassxcCliError(err)
+            raise BitwardenCliError(err)
         else:
             return True
 
     def sync(self):
         (err, out) = self.run_cli_session("sync")
         if err:
-            raise KeepassxcCliError(err)
+            raise BitwardenCliError(err)
         else:
             return True
 
@@ -190,7 +186,7 @@ class KeepassxcDatabase:
 
         (err, out) = self.run_cli_session("list", "items", "--search", query)
         if err:
-            raise KeepassxcCliError(err)
+            raise BitwardenCliError(err)
         else:
             return out["data"]
 
@@ -199,7 +195,7 @@ class KeepassxcDatabase:
 
         (err, out) = self.run_cli_session("get", "item", entry)
         if err:
-            raise KeepassxcCliError(err)
+            raise BitwardenCliError(err)
         else:
             login = out["login"]
             attrs["username"] = login["username"]
@@ -229,7 +225,7 @@ class KeepassxcDatabase:
                 stderr=subprocess.PIPE,
             )
         except FileNotFoundError:
-            raise KeepassxcCliNotFoundError()
+            raise BitwardenCliNotFoundError()
 
         if self.inactivity_lock_timeout:
             self.passphrase_expires_at = datetime.now() + timedelta(
@@ -256,7 +252,7 @@ class KeepassxcDatabase:
                 input=bytes(passphrase, "utf-8"),
             )
         except FileNotFoundError:
-            raise KeepassxcCliNotFoundError()
+            raise BitwardenCliNotFoundError()
 
         if self.inactivity_lock_timeout:
             self.passphrase_expires_at = datetime.now() + timedelta(
