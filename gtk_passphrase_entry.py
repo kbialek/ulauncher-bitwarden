@@ -1,3 +1,5 @@
+import os
+
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -9,7 +11,7 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         Gtk.Window.__init__(self, title="Bitwarden Login" if login_mode else "Bitwarden Unlock")
 
         self.set_keep_above(True)
-        self.set_icon_from_file("images/bitwarden.png")
+        # self.set_icon_from_file(os.path.dirname(os.path.abspath(__file__)) + "/images/bitwarden.png")
         self.verify_passphrase_fn = verify_passphrase_fn
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
