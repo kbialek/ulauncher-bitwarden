@@ -11,7 +11,7 @@
     {
       "id": "search",
       "type": "keyword",
-      "name": "Bitwarden database search",
+      "name": "Bitwarden vault search",
       "description": "Search Bitwarden vault and copy passwords and other attributes to the clipboard",
       "default_value": "bw"
     },
