@@ -8,7 +8,8 @@ class GtkPassphraseEntryWindow(Gtk.Window):
     def __init__(self, login_mode, mfa_enabled, verify_passphrase_fn=None):
         Gtk.Window.__init__(self, title="Bitwarden Login" if login_mode else "Bitwarden Unlock")
 
-        self.verify_passphrase_fn = verify_passphrase_fn
+        self.set_keep_above(True)
+        self.set_icon_from_file("images/bitwarden.png")
         self.verify_passphrase_fn = verify_passphrase_fn
 
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
