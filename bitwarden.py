@@ -164,6 +164,7 @@ class BitwardenClient:
         if err:
             raise BitwardenCliError(err)
         else:
+            self.list_folders()
             return True
 
     def list_folders(self):
