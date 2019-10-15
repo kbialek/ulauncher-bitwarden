@@ -3,7 +3,7 @@
   "name": "Bitwarden Search",
   "description": "Quickly search your Bitwarden password manager database",
   "developer_name": "Krzysztof Bialek",
-  "icon": "images/keepassxc-search.svg",
+  "icon": "images/bitwarden-search.svg",
   "options": {
     "query_debounce": 0.2
   },

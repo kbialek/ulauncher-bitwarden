@@ -23,8 +23,8 @@ from bitwarden import (
     BitwardenVaultLockedError)
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
 
-SEARCH_ICON = "images/keepassxc-search.svg"
-UNLOCK_ICON = "images/keepassxc-search-locked.svg"
+SEARCH_ICON = "images/bitwarden-search.svg"
+UNLOCK_ICON = "images/bitwarden-search-locked.svg"
 EMPTY_ICON = "images/empty.png"
 ERROR_ICON = "images/error.svg"
 ITEM_ICON = "images/key.svg"
