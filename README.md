@@ -27,7 +27,22 @@ https://github.com/kbialek/ulauncher-bitwarden
 - `Bitwarden Server Url`
 - `User e-mail address`
 - `Enable MFA login` - if you use MFA authentication with your Bitwarden account select `yes`, otherwise leave `no` 
-- `Inactivity lock timeout`: forces you to re-enter the passphrase after you haven't used the extension for a while. By default it's set to 300 seconds (5 minutes). If you'd rather not re-enter it, you can set the value to 0, but that's probably not a great idea. NOTE: The cached passphrase is only stored in memory, so you'll need to re-enter it if you reboot your computer or restart Ulauncher.
+- `Inactivity lock timeout` - forces you to re-enter the passphrase after you haven't used the extension for a while. By default it's set to 300 seconds (5 minutes). If you'd rather not re-enter it, you can set the value to 0, but that's probably not a great idea. NOTE: The cached passphrase is only stored in memory, so you'll need to re-enter it if you reboot your computer or restart Ulauncher.
+- `Session store command` - optional command called after successful login or unlock. Bitwarden sessionID is passed over stdin. 
+You can use it to store SessionID "somewhere" with future direct `bw` cli calls. For example, you can store the SessionID in a file using the following script.
+```shell script
+#!/bin/bash
+
+BW_SESSION_FILE=$HOME/.bw-session
+touch $BW_SESSION_FILE
+chmod 600 $BW_SESSION_FILE
+cat /dev/stdin > $BW_SESSION_FILE
+```
+And later use it in the command line
+```shell script
+export BW_SESSION=$(cat ~/.bw-session)
+bw list items
+```
 
 ## Usage
 
