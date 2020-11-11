@@ -60,6 +60,13 @@
       "name": "Inactivity lock timeout",
       "description": "Lock database if extension hasn't been used for a certain number of seconds. Set to 0 to never lock",
       "default_value": "300"
+    },
+    {
+      "id": "session-store-cmd",
+      "type": "input",
+      "name": "Session store command",
+      "description": "Command called after successful login or unlock. SessionID is passed over stdin",
+      "default_value": ""
     }
   ]
 }
