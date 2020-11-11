@@ -116,6 +116,9 @@ class BitwardenExtension(Extension):
     def get_inactivity_lock_timeout(self):
         return int(self.preferences["inactivity-lock-timeout"])
 
+    def get_session_store_cmd(self):
+        return self.preferences["session-store-cmd"]
+
     def set_active_entry(self, keyword, entry):
         self.active_entry = (keyword, entry)
 
@@ -132,7 +135,8 @@ class KeywordQueryEventListener(EventListener):
                 extension.get_server_url(),
                 extension.get_email(),
                 extension.get_mfa_enabled(),
-                extension.get_inactivity_lock_timeout()
+                extension.get_inactivity_lock_timeout(),
+                extension.get_session_store_cmd()
             )
 
             if not self.bitwarden.has_session():
@@ -286,6 +290,8 @@ class PreferencesUpdateEventListener(EventListener):
                 self.bitwarden.change_email(event.new_value)
             elif event.id == "inactivity-lock-timeout":
                 self.bitwarden.change_inactivity_lock_timeout(int(event.new_value))
+            elif event.id == "session-store-cmd":
+                self.bitwarden.change_session_store_cmd(event.new_value)
 
 
 if __name__ == "__main__":
