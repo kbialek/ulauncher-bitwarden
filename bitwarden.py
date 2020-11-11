@@ -37,8 +37,9 @@ class BitwardenClient:
         self.mfa_enabled = None
         self.passphrase_expires_at = None
         self.inactivity_lock_timeout = 0
+        self.session_store_cmd = ""
 
-    def initialize(self, server, email, mfa_enabled, inactivity_lock_timeout):
+    def initialize(self, server, email, mfa_enabled, inactivity_lock_timeout, session_store_cmd):
         """
         Check that
         - we can call the CLI
@@ -48,6 +49,7 @@ class BitwardenClient:
         self.email = email
         self.mfa_enabled = mfa_enabled
         self.inactivity_lock_timeout = inactivity_lock_timeout
+        self.session_store_cmd = session_store_cmd
         if not self.init_done:
             self.configure_server()
             if self.can_execute_cli():
@@ -82,6 +84,12 @@ class BitwardenClient:
         """
         self.inactivity_lock_timeout = secs
         self.passphrase_expires_at = None
+
+    def change_session_store_cmd(self, cmd):
+        """
+        Change the inactivity lock timeout and immediately lock the database.
+        """
+        self.session_store_cmd = cmd
 
     def configure_server(self):
         self.run_cli_session("config", "server", self.server)
@@ -120,6 +128,7 @@ class BitwardenClient:
         elif self.need_unlock():
             success = self.unlock(pp)
         if success:
+            self.run_cli_store_session()
             self.list_folders()
         return success
 
@@ -264,3 +273,18 @@ class BitwardenClient:
             )
 
         return cp.stderr.decode("utf-8"), cp.stdout.decode("utf-8")
+
+    def run_cli_store_session(self):
+        if self.session_store_cmd == '':
+            return
+        try:
+            cp = subprocess.run(
+                [self.session_store_cmd],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                input=bytes(self.session, "utf-8"),
+            )
+        except FileNotFoundError:
+            raise BitwardenCliNotFoundError()
+        except Exception as e:
+            raise BitwardenCliError(e)
