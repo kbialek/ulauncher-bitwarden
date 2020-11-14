@@ -33,6 +33,29 @@ You can use it to run a command which will store session key in "some" secure lo
 and later read the session key when directly calling `bw` in the cli. 
 It's totally up to you how and where you will store the session key.
 
+## Usage
+
+Open Ulauncher and type in "bw " to start the extension. If your password database is locked with a passphrase, it'll ask you to enter it:
+
+![Unlock Database](images/screenshots/unlock-database.png)
+
+Once unlocked, search the database for "mail" logins:
+
+![Search](images/screenshots/search1.png)
+
+Look at the `GMail` entry:
+
+![Entry details](images/screenshots/details1.png)
+
+## Exporting Session Key
+The extension keeps the session key in memory. This is a problem when one wants to use `bw` directly from the
+command line. Vault must be unlocked and bw-cli creates a new session key and at this same time invalidates 
+the session key stored by the extension.
+
+To overcome this problem the extension is now able to export the session key after a successful login or unlock.
+Please keep in mind, that this weakens your vault's security, as the session key is easier to intercept when
+it's stored outside of the extension memory.
+
 ### Exporting session key into a file
 I do not recommend this solution because it leaves valid session key in the file until vault is explicitly locked.
 
@@ -91,19 +114,6 @@ Now you can easily read the session key into an environment variable
 export BW_SESSION=$(bw-read-session)
 ```
 
-## Usage
-
-Open Ulauncher and type in "bw " to start the extension. If your password database is locked with a passphrase, it'll ask you to enter it:
-
-![Unlock Database](images/screenshots/unlock-database.png)
-
-Once unlocked, search the database for "mail" logins:
-
-![Search](images/screenshots/search1.png)
-
-Look at the `GMail` entry:
-
-![Entry details](images/screenshots/details1.png)
 
 ## Inspiration and thanks
 
