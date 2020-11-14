@@ -32,7 +32,11 @@ https://github.com/kbialek/ulauncher-bitwarden
 You can use it to run a command which will store session key in "some" secure location, 
 and later read the session key when directly calling `bw` in the cli. 
 It's totally up to you how and where you will store the session key.
-For example, you can store it in a file using the following script.
+
+### Exporting session key into a file
+I do not recommend this solution because it leaves valid session key in the file until vault is explicitly locked.
+
+To store session key in a file use the following script.
 ```shell script
 #!/bin/bash
 
@@ -41,12 +45,50 @@ touch $BW_SESSION_FILE
 chmod 600 $BW_SESSION_FILE
 cat /dev/stdin > $BW_SESSION_FILE
 ```
-In this case `Session store command` property must be set to absolute path of the script.
+`Session store command` property must be set to absolute path of the script.
 
 Now you can use it in the command line
 ```shell script
 export BW_SESSION=$(cat ~/.bw-session)
 bw list items
+```
+
+### Exporting session key into Kernel Key Management
+Linux kernel comes with key management facility, that can be used to store user secrets.
+For more details read [this](https://github.com/jdukes/pykeyctl/blob/master/docs/Overview.org) page.
+
+To store session key in the kernel memory use this script. 
+
+File `$HOME/bin/bw-store-session`
+```shell script
+#!/bin/bash
+
+BW_SESSION_FILE=$HOME/.bw-session
+touch $BW_SESSION_FILE
+chmod 600 $BW_SESSION_FILE
+KEY_ID=$(cat /dev/stdin | keyctl padd user bw-session @u)
+keyctl timeout $KEY_ID 36000
+echo $KEY_ID > $BW_SESSION_FILE
+```
+Please note that it sets **key timeout**, therefore the key will expire, which is great from security perspective. 
+Key ID will be stored in `$HOME/.bw-session` file.
+
+`Session store command` property must be set to absolute path of the script.
+
+We need one more script to read the key from the kernel memory.
+
+File `$HOME/bin/bw-read-session`
+```shell script
+#!/bin/bash
+
+BW_SESSION_FILE=$HOME/.bw-session
+KEY_ID=$(cat $BW_SESSION_FILE)
+keyctl print $KEY_ID
+```
+
+Now you can easily read the session key into an environment variable
+```
+export BW_SESSION=$(bw-read-session)
 ```
 
 ## Usage
