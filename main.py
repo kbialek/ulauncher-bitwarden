@@ -93,6 +93,19 @@ def formatted_result_item(hidden, name, value, action):
             on_enter=action,
         )
 
+def custom_clipboard_actions_list(name, value):
+    return [
+        ExtensionCustomAction(
+            {
+                "action": "show_notification",
+                "summary": "{} copied to clipboard.".format(
+                    name
+                ),
+            }
+        ),
+        CopyToClipboardAction(value),
+    ]
+
 class BitwardenExtension(Extension):
     """ Extension class, coordinates everything """
 
@@ -259,17 +272,7 @@ class ItemEnterEventListener(EventListener):
                 if attr == "fields":
                     for field in val:
                         action = ActionList(
-                            [
-                                ExtensionCustomAction(
-                                    {
-                                        "action": "show_notification",
-                                        "summary": "{} copied to clipboard.".format(
-                                            field["name"].capitalize()
-                                        ),
-                                    }
-                                ),
-                                CopyToClipboardAction(field["value"]),
-                            ]
+                            custom_clipboard_actions_list(field["name"], field["value"])
                         )
 
                         if field["type"] == 1:
@@ -278,17 +281,7 @@ class ItemEnterEventListener(EventListener):
                             items.append(formatted_result_item(False, field["name"], field["value"], action))
                 else:
                     action = ActionList(
-                        [
-                            ExtensionCustomAction(
-                                {
-                                    "action": "show_notification",
-                                    "summary": "{} copied to clipboard.".format(
-                                        attr_nice.capitalize()
-                                    ),
-                                }
-                            ),
-                            CopyToClipboardAction(val),
-                        ]
+                        custom_clipboard_actions_list(attr_nice.capitaze(), val)
                     )
 
                 if attr == "password":
