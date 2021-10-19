@@ -78,6 +78,33 @@ def bitwarden_cli_error_item(message):
         on_enter=DoNothingAction(),
     )
 
+def formatted_result_item(hidden, name, value, action):
+    item_description = "Copy {} to clipboard".format(name)
+
+    if hidden:
+        item_name = "{}: ********".format(name)
+    else:
+        item_name = "{}: {}".format(name, value)
+
+    return ExtensionResultItem(
+            icon=COPY_ICON,
+            name=item_name,
+            description=item_description,
+            on_enter=action,
+        )
+
+def custom_clipboard_actions_list(name, value):
+    return [
+        ExtensionCustomAction(
+            {
+                "action": "show_notification",
+                "summary": "{} copied to clipboard.".format(
+                    name
+                ),
+            }
+        ),
+        CopyToClipboardAction(value),
+    ]
 
 class BitwardenExtension(Extension):
     """ Extension class, coordinates everything """
@@ -237,42 +264,30 @@ class ItemEnterEventListener(EventListener):
             ("username", "username"),
             ("uri", "URL"),
             ("totp", "totp"),
+            ("fields", "Custom")
         ]
         for attr, attr_nice in attrs:
             val = details.get(attr, "")
             if val:
-                action = ActionList(
-                    [
-                        ExtensionCustomAction(
-                            {
-                                "action": "show_notification",
-                                "summary": "{} copied to clipboard.".format(
-                                    attr_nice.capitalize()
-                                ),
-                            }
-                        ),
-                        CopyToClipboardAction(val),
-                    ]
-                )
+                if attr == "fields":
+                    for field in val:
+                        action = ActionList(
+                            custom_clipboard_actions_list(field["name"], field["value"])
+                        )
+
+                        if field["type"] == 1:
+                            items.append(formatted_result_item(True, field["name"], field["value"], action))
+                        else:
+                            items.append(formatted_result_item(False, field["name"], field["value"], action))
+                else:
+                    action = ActionList(
+                        custom_clipboard_actions_list(attr_nice.capitaze(), val)
+                    )
 
                 if attr == "password":
-                    items.append(
-                        ExtensionResultItem(
-                            icon=COPY_ICON,
-                            name="{}: ********".format(attr_nice.capitalize()),
-                            description="Copy password to clipboard".format(attr_nice),
-                            on_enter=action,
-                        )
-                    )
-                else:
-                    items.append(
-                        ExtensionResultItem(
-                            icon=COPY_ICON,
-                            name="{}: {}".format(attr_nice.capitalize(), val),
-                            description="Copy {} to clipboard".format(attr_nice),
-                            on_enter=action,
-                        )
-                    )
+                    items.append(formatted_result_item(True, attr_nice.capitalize(), val, action))
+                elif attr != "fields":
+                    items.append(formatted_result_item(False, attr_nice.capitalize(), val, action))
         return RenderResultListAction(items)
 
 
