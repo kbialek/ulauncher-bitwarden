@@ -211,6 +211,9 @@ class BitwardenClient:
             raise BitwardenCliError(err)
         else:
             login = out["login"]
+            if "fields" in out:
+                attrs["fields"] = out["fields"]
+
             attrs["username"] = login["username"]
             attrs["password"] = login["password"]
             if "uris" in login:
