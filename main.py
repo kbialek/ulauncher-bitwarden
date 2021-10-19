@@ -281,7 +281,7 @@ class ItemEnterEventListener(EventListener):
                             items.append(formatted_result_item(False, field["name"], field["value"], action))
                 else:
                     action = ActionList(
-                        custom_clipboard_actions_list(attr_nice.capitaze(), val)
+                        custom_clipboard_actions_list(attr_nice.capitalize(), val)
                     )
 
                 if attr == "password":
