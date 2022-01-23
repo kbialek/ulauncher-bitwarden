@@ -1,5 +1,4 @@
 import subprocess
-import os
 from datetime import datetime, timedelta
 import json
 from json import JSONDecodeError
@@ -95,8 +94,11 @@ class BitwardenClient:
         self.run_cli_session("config", "server", self.server)
 
     def need_login(self):
-        (err, out) = self.run_cli_session("login", "--check")
-        return self.handle_unlock_result(err, out)
+        try:
+            (err, out) = self.run_cli_session("login", "--check")
+            return self.handle_unlock_result(err, out)
+        except BitwardenVaultLockedError:
+            return True
 
     def need_mfa(self):
         return self.mfa_enabled
@@ -112,9 +114,9 @@ class BitwardenClient:
 
     @staticmethod
     def handle_unlock_result(err, out):
-        if err:
+        if out:
             try:
-                result = err["success"] is False
+                result = out["success"] is False
                 return result
             except JSONDecodeError:
                 raise BitwardenCliError(err)
@@ -183,7 +185,7 @@ class BitwardenClient:
             return False
         else:
             self.folders = dict()
-            for item in out["data"]:
+            for item in out["data"]["data"]:
                 self.folders[item["id"]] = item["name"]
             return True
 
@@ -201,7 +203,7 @@ class BitwardenClient:
         if err:
             raise BitwardenCliError(err)
         else:
-            return out["data"]
+            return out["data"]["data"]
 
     def get_entry_details(self, entry):
         attrs = dict()
@@ -210,9 +212,10 @@ class BitwardenClient:
         if err:
             raise BitwardenCliError(err)
         else:
-            login = out["login"]
-            if "fields" in out:
-                attrs["fields"] = out["fields"]
+            data = out["data"]
+            login = data["login"]
+            if "fields" in data:
+                attrs["fields"] = data["fields"]
 
             attrs["username"] = login["username"]
             attrs["password"] = login["password"]
@@ -222,7 +225,7 @@ class BitwardenClient:
 
             if "totp" in login and login["totp"]:
                 (err, out) = self.run_cli_session("get", "totp", entry)
-                attrs["totp"] = out["data"]
+                attrs["totp"] = out["data"]["data"]
         return attrs
 
     def can_execute_cli(self):
@@ -252,12 +255,18 @@ class BitwardenClient:
         out = cp.stdout.decode("utf-8")
 
         err_json = None
+        out_json = None
         if err:
             err_json = json.loads(err)
             if not err_json["success"] and err_json["message"] == "Vault is locked.":
                 raise BitwardenVaultLockedError(err_json["message"])
 
-        return err_json, json.loads(out)["data"] if out else None
+        if out:
+            out_json = json.loads(out)
+            if not out_json["success"] and out_json["message"] == "You are not logged in.":
+                raise BitwardenVaultLockedError(out_json["message"])
+
+        return err_json, out_json
 
     def run_cli_pp(self, passphrase, *args):
         try:
