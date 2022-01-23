@@ -23,6 +23,8 @@ from bitwarden import (
     BitwardenVaultLockedError)
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
 
+BW_CLI_MIN_VERSION = "1.20.0"
+
 SEARCH_ICON = "images/bitwarden-search.svg"
 UNLOCK_ICON = "images/bitwarden-search-locked.svg"
 EMPTY_ICON = "images/empty.png"
@@ -58,6 +60,15 @@ NO_SEARCH_RESULTS_ITEM = ExtensionResultItem(
     description="Please check spelling or make the query less specific",
     on_enter=DoNothingAction(),
 )
+
+
+def build_bitwarden_cli_version_unsupported_item(min_version):
+    return ExtensionResultItem(
+        icon=ERROR_ICON,
+        name="Your bw cli version is not supported",
+        description="At least version {} is required".format(min_version),
+        on_enter=DoNothingAction(),
+    )
 
 
 def more_results_available_item(cnt):
@@ -167,7 +178,10 @@ class KeywordQueryEventListener(EventListener):
             )
 
             if not self.bitwarden.has_session():
-                return RenderResultListAction([NEED_PASSPHRASE_ITEM])
+                if self.bitwarden.get_bw_version() < BW_CLI_MIN_VERSION:
+                    return RenderResultListAction([build_bitwarden_cli_version_unsupported_item(BW_CLI_MIN_VERSION)])
+                else:
+                    return RenderResultListAction([NEED_PASSPHRASE_ITEM])
             else:
                 return self.process_keyword_query(event, extension)
         except BitwardenVaultLockedError:

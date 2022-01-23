@@ -235,6 +235,19 @@ class BitwardenClient:
         except FileNotFoundError:
             return False
 
+    def get_bw_version(self):
+        try:
+            cp = subprocess.run(
+                [self.cli, "--version"],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+        except FileNotFoundError:
+            raise BitwardenCliNotFoundError()
+
+        out = cp.stdout.decode("utf-8")
+        return str(out).strip()
+
     def run_cli_session(self, *args):
         session_args = ["--session", self.session] if self.session else []
         try:
