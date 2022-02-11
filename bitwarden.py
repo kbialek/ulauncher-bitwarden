@@ -269,10 +269,6 @@ class BitwardenClient:
 
         err_json = None
         out_json = None
-        if err:
-            err_json = json.loads(err)
-            if not err_json["success"] and err_json["message"] == "Vault is locked.":
-                raise BitwardenVaultLockedError(err_json["message"])
 
         if out:
             out_json = json.loads(out)
