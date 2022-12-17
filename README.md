@@ -17,12 +17,10 @@ A [Ulauncher](https://ulauncher.io/) extension to search your [Bitwarden](https:
 
 ### `bw serve` systemd service
 
-- Login once in your shell: `bw login`
-- Copy `BW_SESSION=...` string
+- Make sure `bw` works in a shell session (e.g. configuring server, e-mail, ...)
 - Create a user systemd directory: `mkdir -p ~/.config/systemd/user`
 - Create a user service in `~/.config/systemd/user/bw.service` with the following content
   - Your `ExecStart` may vary (e.g. `%h/bin/bw serve` if you have it in your home directory)
-  - Insert the `BW_SESSION` string from step 2 (**TODO**: check if we can use a more secure variant) 
 
 ```
 [Unit]
@@ -30,7 +28,6 @@ Description=Bitwarden CLI RESTful API
 After=network.target
 
 [Service]
-Environment=BW_SESSION=...
 ExecStart=/usr/bin/bw serve
 Restart=on-failure
 
