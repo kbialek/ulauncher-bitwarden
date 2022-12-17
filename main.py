@@ -16,14 +16,8 @@ from ulauncher.api.shared.action.DoNothingAction import DoNothingAction
 from ulauncher.api.shared.action.ExtensionCustomAction import ExtensionCustomAction
 from ulauncher.api.shared.action.ActionList import ActionList
 from ulauncher.api.shared.action.CopyToClipboardAction import CopyToClipboardAction
-from bitwarden import (
-    BitwardenClient,
-    BitwardenCliNotFoundError,
-    BitwardenCliError,
-    BitwardenVaultLockedError)
+from bitwarden import BitwardenClient, BitwardenCliError, BitwardenVaultLockedError
 from gtk_passphrase_entry import GtkPassphraseEntryWindow
-
-BW_CLI_MIN_VERSION = "1.20.0"
 
 SEARCH_ICON = "images/bitwarden-search.svg"
 UNLOCK_ICON = "images/bitwarden-search-locked.svg"
@@ -32,13 +26,6 @@ ERROR_ICON = "images/error.svg"
 ITEM_ICON = "images/key.svg"
 COPY_ICON = "images/copy.svg"
 NOT_FOUND_ICON = "images/not_found.svg"
-
-BITWARDEN_CLI_NOT_FOUND_ITEM = ExtensionResultItem(
-    icon=ERROR_ICON,
-    name="Cannot find or execute bw",
-    description="Please make sure that bitwarden-cli is installed and accessible",
-    on_enter=DoNothingAction(),
-)
 
 NEED_PASSPHRASE_ITEM = ExtensionResultItem(
     icon=UNLOCK_ICON,
@@ -89,6 +76,7 @@ def bitwarden_cli_error_item(message):
         on_enter=DoNothingAction(),
     )
 
+
 def formatted_result_item(hidden, name, value, action):
     item_description = "Copy {} to clipboard".format(name)
 
@@ -98,27 +86,27 @@ def formatted_result_item(hidden, name, value, action):
         item_name = "{}: {}".format(name, value)
 
     return ExtensionResultItem(
-            icon=COPY_ICON,
-            name=item_name,
-            description=item_description,
-            on_enter=action,
-        )
+        icon=COPY_ICON,
+        name=item_name,
+        description=item_description,
+        on_enter=action,
+    )
+
 
 def custom_clipboard_actions_list(name, value):
     return [
         ExtensionCustomAction(
             {
                 "action": "show_notification",
-                "summary": "{} copied to clipboard.".format(
-                    name
-                ),
+                "summary": "{} copied to clipboard.".format(name),
             }
         ),
         CopyToClipboardAction(value),
     ]
 
+
 class BitwardenExtension(Extension):
-    """ Extension class, coordinates everything """
+    """Extension class, coordinates everything"""
 
     def __init__(self):
         super(BitwardenExtension, self).__init__()
@@ -139,55 +127,33 @@ class BitwardenExtension(Extension):
     def get_lock_keyword(self):
         return self.preferences["lock"]
 
-    def get_server_url(self):
-        return self.preferences["server-url"]
-
-    def get_email(self):
-        return self.preferences["email"]
-
-    def get_mfa_enabled(self):
-        return self.preferences["mfa"] == 'yes'
+    def get_url(self):
+        return self.preferences["url"]
 
     def get_max_result_items(self):
         return int(self.preferences["max-results"])
-
-    def get_inactivity_lock_timeout(self):
-        return int(self.preferences["inactivity-lock-timeout"])
-
-    def get_session_store_cmd(self):
-        return self.preferences["session-store-cmd"]
 
     def set_active_entry(self, keyword, entry):
         self.active_entry = (keyword, entry)
 
 
 class KeywordQueryEventListener(EventListener):
-    """ KeywordQueryEventListener class used to manage user input """
+    """KeywordQueryEventListener class used to manage user input"""
 
     def __init__(self, bitwarden):
         self.bitwarden = bitwarden
 
     def on_event(self, event, extension):
         try:
-            self.bitwarden.initialize(
-                extension.get_server_url(),
-                extension.get_email(),
-                extension.get_mfa_enabled(),
-                extension.get_inactivity_lock_timeout(),
-                extension.get_session_store_cmd()
+            self.bitwarden.configure(
+                url=extension.get_url(),
             )
-
-            if not self.bitwarden.has_session():
-                if self.bitwarden.get_bw_version() < BW_CLI_MIN_VERSION:
-                    return RenderResultListAction([build_bitwarden_cli_version_unsupported_item(BW_CLI_MIN_VERSION)])
-                else:
-                    return RenderResultListAction([NEED_PASSPHRASE_ITEM])
+            if not self.bitwarden.is_unlocked():
+                return RenderResultListAction([NEED_PASSPHRASE_ITEM])
             else:
                 return self.process_keyword_query(event, extension)
         except BitwardenVaultLockedError:
             return RenderResultListAction([NEED_PASSPHRASE_ITEM])
-        except BitwardenCliNotFoundError:
-            return RenderResultListAction([BITWARDEN_CLI_NOT_FOUND_ITEM])
         except BitwardenCliError as e:
             return RenderResultListAction([bitwarden_cli_error_item(e.message)])
 
@@ -228,16 +194,20 @@ class KeywordQueryEventListener(EventListener):
             if self.bitwarden.sync():
                 Notify.Notification.new("Bitwarden vault synchronized.").show()
             else:
-                Notify.Notification.new("Error", "Bitwarden vault synchronization error.").show()
+                Notify.Notification.new(
+                    "Error", "Bitwarden vault synchronization error."
+                ).show()
         elif query_keyword == extension.get_lock_keyword():
             if self.bitwarden.lock():
                 Notify.Notification.new("Bitwarden vault locked.").show()
             else:
-                Notify.Notification.new("Error", "Bitwarden vault locking error.").show()
+                Notify.Notification.new(
+                    "Error", "Bitwarden vault locking error."
+                ).show()
 
 
 class ItemEnterEventListener(EventListener):
-    """ KeywordQueryEventListener class used to manage user input """
+    """KeywordQueryEventListener class used to manage user input"""
 
     def __init__(self, bitwarden):
         self.bitwarden = bitwarden
@@ -255,19 +225,13 @@ class ItemEnterEventListener(EventListener):
                 return self.show_active_entry(entry["id"])
             elif action == "show_notification":
                 Notify.Notification.new(data.get("summary")).show()
-        except BitwardenCliNotFoundError:
-            return RenderResultListAction([BITWARDEN_CLI_NOT_FOUND_ITEM])
         except BitwardenCliError as e:
             return RenderResultListAction([bitwarden_cli_error_item(e.message)])
 
     def read_verify_passphrase(self, extension):
-        win = GtkPassphraseEntryWindow(
-            login_mode=self.bitwarden.need_login(),
-            mfa_enabled=self.bitwarden.need_mfa(),
-            verify_passphrase_fn=self.bitwarden.verify_and_set_passphrase
-        )
+        win = GtkPassphraseEntryWindow(verify_passphrase_fn=self.bitwarden.unlock)
         win.read_passphrase()
-        if not self.bitwarden.need_unlock():
+        if self.bitwarden.is_unlocked():
             Notify.Notification.new("Bitwarden vault unlocked.").show()
 
     def show_active_entry(self, entry):
@@ -278,7 +242,7 @@ class ItemEnterEventListener(EventListener):
             ("username", "username"),
             ("uri", "URL"),
             ("totp", "totp"),
-            ("fields", "Custom")
+            ("fields", "Custom"),
         ]
         for attr, attr_nice in attrs:
             val = details.get(attr, "")
@@ -290,37 +254,45 @@ class ItemEnterEventListener(EventListener):
                         )
 
                         if field["type"] == 1:
-                            items.append(formatted_result_item(True, field["name"], field["value"], action))
+                            items.append(
+                                formatted_result_item(
+                                    True, field["name"], field["value"], action
+                                )
+                            )
                         else:
-                            items.append(formatted_result_item(False, field["name"], field["value"], action))
+                            items.append(
+                                formatted_result_item(
+                                    False, field["name"], field["value"], action
+                                )
+                            )
                 else:
                     action = ActionList(
                         custom_clipboard_actions_list(attr_nice.capitalize(), val)
                     )
 
                 if attr == "password":
-                    items.append(formatted_result_item(True, attr_nice.capitalize(), val, action))
+                    items.append(
+                        formatted_result_item(True, attr_nice.capitalize(), val, action)
+                    )
                 elif attr != "fields":
-                    items.append(formatted_result_item(False, attr_nice.capitalize(), val, action))
+                    items.append(
+                        formatted_result_item(
+                            False, attr_nice.capitalize(), val, action
+                        )
+                    )
         return RenderResultListAction(items)
 
 
 class PreferencesUpdateEventListener(EventListener):
-    """ Handle preferences updates """
+    """Handle preferences updates"""
 
     def __init__(self, bitwarden):
         self.bitwarden = bitwarden
 
     def on_event(self, event, extension):
         if event.new_value != event.old_value:
-            if event.id == "server-url":
-                self.bitwarden.change_server_url(event.new_value)
-            elif event.id == "email":
-                self.bitwarden.change_email(event.new_value)
-            elif event.id == "inactivity-lock-timeout":
-                self.bitwarden.change_inactivity_lock_timeout(int(event.new_value))
-            elif event.id == "session-store-cmd":
-                self.bitwarden.change_session_store_cmd(event.new_value)
+            if event.id == "url":
+                self.bitwarden.configure(url=event.new_value)
 
 
 if __name__ == "__main__":
