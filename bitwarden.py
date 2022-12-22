@@ -19,8 +19,8 @@ class BitwardenClient:
 
     def __init__(self):
         self.url = "http://localhost:8087"
-        self.folders = {}
         self.status = {}
+        self.folders = {}
         try:
             self.status = get(
                 url="{}/status".format(self.url),
@@ -48,6 +48,7 @@ class BitwardenClient:
                 url="{}/unlock".format(self.url),
                 json={"password": pp},
             ).json()
+            self.list_folders()
             return res.get("success")
         except Exception as err:
             raise BitwardenCliError(str(err)) from err
