@@ -7,8 +7,8 @@ from gi.repository import Gtk, GLib
 
 
 class GtkPassphraseEntryWindow(Gtk.Window):
-    def __init__(self, login_mode, mfa_enabled, verify_passphrase_fn=None):
-        Gtk.Window.__init__(self, title="Bitwarden Login" if login_mode else "Bitwarden Unlock")
+    def __init__(self, verify_passphrase_fn=None):
+        Gtk.Window.__init__(self, title="Bitwarden Unlock")
 
         self.set_keep_above(True)
         # self.set_icon_from_file(os.path.dirname(os.path.abspath(__file__)) + "/images/bitwarden.png")
@@ -30,19 +30,6 @@ class GtkPassphraseEntryWindow(Gtk.Window):
         self.password_entry.connect("key-press-event", self.key_pressed)
         vbox.pack_start(self.password_entry, True, True, 0)
 
-        self.mfa_label = Gtk.Label("Two Factor Authentication Code")
-
-        self.mfa_entry = Gtk.Entry()
-        self.mfa_entry.set_text("")
-        self.mfa_entry.set_editable(True)
-        self.mfa_entry.set_visibility(True)
-        self.mfa_entry.props.max_width_chars = 6
-        self.mfa_entry.connect("activate", self.enter_pressed)
-        self.mfa_entry.connect("key-press-event", self.key_pressed)
-        if login_mode and mfa_enabled:
-            vbox.pack_start(self.mfa_label, True, True, 0)
-            vbox.pack_start(self.mfa_entry, True, True, 0)
-
         self.set_position(Gtk.WindowPosition.CENTER)
         self.set_resizable(False)
 
@@ -52,10 +39,9 @@ class GtkPassphraseEntryWindow(Gtk.Window):
 
     def enter_pressed(self, entry):
         pp = self.password_entry.get_text()
-        mfa = self.mfa_entry.get_text()
         if self.verify_passphrase_fn:
             self.show_verifying_passphrase()
-            if self.verify_passphrase_fn(pp, mfa):
+            if self.verify_passphrase_fn(pp):
                 self.passphrase = pp
                 self.close_window()
             else:
