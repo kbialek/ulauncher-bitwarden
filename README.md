@@ -10,10 +10,22 @@ A [Ulauncher](https://ulauncher.io/) extension to search your [Bitwarden](https:
 
 ## Requirements
 
-- Install a recent version of [Bitwarden CLI](https://github.com/bitwarden/clients/tree/master/apps/cli)
+- Install a recent version of [Bitwarden CLI](https://github.com/bitwarden/clients/tree/master/apps/cli) (e.g. via [3rd party apt repo](https://gitlab.com/packaging/bitwarden-cli/))
 - Install python requests module (e.g. `sudo apt-get install python3-requests`)
 
 ## Installation
+
+### `bw` configuration
+
+```bash
+bw login
+```
+
+self hosted (e.g. [vaultwarden](https://github.com/dani-garcia/vaultwarden/)):
+
+```bash
+bw config server https://my-vault.example.com
+```
 
 ### `bw serve` systemd service
 
