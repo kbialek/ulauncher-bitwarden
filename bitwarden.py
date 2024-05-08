@@ -1,4 +1,5 @@
 import subprocess
+import os
 from datetime import datetime, timedelta
 import json
 from json import JSONDecodeError
@@ -249,10 +250,13 @@ class BitwardenClient:
         return str(out).strip()
 
     def run_cli_session(self, *args):
-        session_args = ["--session", self.session] if self.session else []
+        env_vars = os.environ.copy()
+        if self.session:
+            env_vars["BW_SESSION"] = self.session
         try:
             cp = subprocess.run(
-                [self.cli, *args, "--response", *session_args],
+                [self.cli, *args, "--response"],
+                env=env_vars,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
             )
